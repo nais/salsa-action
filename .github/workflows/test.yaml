@@ -1,0 +1,17 @@
+name: Test
+on: [push]
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Push image
+        run: |
+          docker build . -t ttl.sh/salsa/gotestapp:1h && docker push ttl.sh/salsa/gotestapp:1h
+      - name: Test
+        uses: ./
+        with:
+          ecosystem: 'go'
+          image: ttl.sh/salsa/gotestapp:1h
+          maindir: './cmd/testapp'
