@@ -8,7 +8,13 @@ inputs:
     description: 'image'
     required: true
   maindir:
-    description: 'maindir go'
+    description: 'maindir go relative to workdir'
+    required: true
+  workdir:
+    description: 'workdir for golang app sbom generation'
+    required: false
+  key:
+    description: 'cosign key'
     required: true
 runs:
   using: "composite"
@@ -17,14 +23,56 @@ runs:
       uses: actions/setup-go@v2
       with:
         go-version: '1.20.1'
+
 #    - name: Install Cosign
 #      uses: sigstore/cosign-installer@main
 #      with:
-#        cosign-release: 'main'
+#        cosign-release: 'v2.0.0'
 
-    - run: curl https://github.com/sigstore/cosign/releases/download/v2.0.0/cosign-linux-amd64 -o /usr/local/bin/cosign
+
+    # TODO: install and verify checksum etc
+    - name: Install cyclonedx-gomod
+      if: ${{ inputs.ecosystem == 'go' }}
+      run: |
+        go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+        echo "Installed cyclonedx-gomod"
     - name: CycloneDX GoMod Generate SBOM
       if: ${{ inputs.ecosystem == 'go' }}
-      uses: CycloneDX/gh-gomod-generate-sbom@v1.1.0
-      with:
-        args: app -output ./sbom.json -main ${{ inputs.maindir }} -json=true
+      run: |
+        WORKDIR=${{ inputs.workdir }}
+        if [ "$WORKDIR" != "" ]; then
+          cd $WORKDIR
+        fi
+        cyclonedx-gomod app -output ./sbom.json -main ${{ inputs.maindir }} -json=true
+#    - name: CycloneDX GoMod Generate SBOM
+#      if: ${{ inputs.ecosystem == 'go' }}
+#      uses: CycloneDX/gh-gomod-generate-sbom@v1.1.0
+#      working-directory: golang
+#      with:
+#        args: app -output ./sbom.json -main ${{ inputs.maindir }} -json=true
+
+    - run: |
+        WORKDIR=${{ inputs.workdir }}
+        if [ "$WORKDIR" != "" ]; then
+          cd $WORKDIR
+        fi
+        
+        cat sbom.json
+
+    - name: Install Cosign
+      run: |
+        curl https://github.com/sigstore/cosign/releases/download/v2.0.0/cosign-linux-arm -Lo /usr/local/bin/cosign
+        chmod +x /usr/local/bin/cosign
+        echo "Installed cosign"
+
+    - name: Cosign attest and upload to OCI registry
+      run: |
+        WORKDIR=${{ inputs.workdir }}
+        if [ "$WORKDIR" != "" ]; then
+          cd $WORKDIR
+        fi
+        echo "Signing SBOM for ${{ inputs.image }}"
+        export COSIGN_PASSWORD=""
+        cosign attest --tlog-upload=false --predicate sbom.json --type cyclonedx --key ${{ inputs.key }} ${{ inputs.image }}
+        echo "Attestation finished"
+      

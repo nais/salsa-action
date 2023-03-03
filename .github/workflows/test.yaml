@@ -8,10 +8,13 @@ jobs:
       - uses: actions/checkout@v3
       - name: Push image
         run: |
-          docker build . -t ttl.sh/salsa/gotestapp:1h && docker push ttl.sh/salsa/gotestapp:1h
-      - name: Test
+          docker build golang/ -t ttl.sh/salsa/gotestapp:1h && docker push ttl.sh/salsa/gotestapp:1h
+      - name: Generate, sign and upload SBOM
         uses: ./
+        #working-directory: golang
         with:
           ecosystem: 'go'
           image: ttl.sh/salsa/gotestapp:1h
-          maindir: './cmd/testapp'
+          maindir: '.'
+          workdir: 'golang'
+          key: cosign.key
