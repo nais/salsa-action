@@ -11,11 +11,14 @@ inputs:
     description: 'maindir go relative to workdir'
     required: true
   workdir:
-    description: 'workdir for golang app sbom generation'
+    description: 'workdir for sbom generation'
     required: false
   key:
     description: 'cosign key'
     required: true
+  byosbom:
+    description: 'use existing SBOM file instead of generating one'
+    required: false
 runs:
   using: "composite"
   steps:
@@ -24,11 +27,10 @@ runs:
       with:
         go-version: '1.20.1'
 
-#    - name: Install Cosign
-#      uses: sigstore/cosign-installer@main
-#      with:
-#        cosign-release: 'v2.0.0'
-
+    #    - name: Install Cosign
+    #      uses: sigstore/cosign-installer@main
+    #      with:
+    #        cosign-release: 'v2.0.0'
 
     # TODO: install and verify checksum etc
     - name: Install cyclonedx-gomod
@@ -44,35 +46,44 @@ runs:
           cd $WORKDIR
         fi
         cyclonedx-gomod app -output ./sbom.json -main ${{ inputs.maindir }} -json=true
-#    - name: CycloneDX GoMod Generate SBOM
-#      if: ${{ inputs.ecosystem == 'go' }}
-#      uses: CycloneDX/gh-gomod-generate-sbom@v1.1.0
-#      working-directory: golang
-#      with:
-#        args: app -output ./sbom.json -main ${{ inputs.maindir }} -json=true
+        echo "SBOM=sbom.json" >> $GITHUB_ENV
+    #    - name: CycloneDX GoMod Generate SBOM
+    #      if: ${{ inputs.ecosystem == 'go' }}
+    #      uses: CycloneDX/gh-gomod-generate-sbom@v1.1.0
+    #      working-directory: golang
+    #      with:
+    #        args: app -output ./sbom.json -main ${{ inputs.maindir }} -json=true
 
-    - run: |
+    - name: Change directory to workdir
+      run: |
         WORKDIR=${{ inputs.workdir }}
         if [ "$WORKDIR" != "" ]; then
           cd $WORKDIR
         fi
-        
-        cat sbom.json
+
+    - name: Attest BYOSBOM
+      if: ${{ inputs.byosbom != '' || inputs.ecosystem == 'maven' || inputs.ecosystem == 'gradle' }}
+      run: |
+        if [ ! -f ${{ inputs.workdir }}/inputs.byosbom }} ]; then
+          echo "File ${{ inputs.byosbom }} not found!"
+          exit 1
+        fi
+        if [[ ${{ inputs.byosbom }} != *.json ]]; then
+          echo "File is not a json file!"
+          exit 1
+        fi
+        echo "SBOM=${{ inputs.byosbom }}" >> $GITHUB_ENV
 
     - name: Install Cosign
       run: |
         curl https://github.com/sigstore/cosign/releases/download/v2.0.0/cosign-linux-arm -Lo /usr/local/bin/cosign
-        chmod +x /usr/local/bin/cosign
+        chmod +x /usr/local/bin/cosign 
         echo "Installed cosign"
 
     - name: Cosign attest and upload to OCI registry
       run: |
-        WORKDIR=${{ inputs.workdir }}
-        if [ "$WORKDIR" != "" ]; then
-          cd $WORKDIR
-        fi
+        echo "Using SBOM ${{ env.SBOM }}"
         echo "Signing SBOM for ${{ inputs.image }}"
         export COSIGN_PASSWORD=""
-        cosign attest --tlog-upload=false --predicate sbom.json --type cyclonedx --key ${{ inputs.key }} ${{ inputs.image }}
+        cosign attest --tlog-upload=false --predicate ${{ inputs.workdir }}/${{ env.SBOM }} --type cyclonedx --key ${{ inputs.workdir }}/${{ inputs.key }} ${{ inputs.image }}
         echo "Attestation finished"
-      

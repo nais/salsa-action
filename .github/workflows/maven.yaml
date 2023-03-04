@@ -1,0 +1,36 @@
+name: Maven Test
+on: [ push ]
+
+env:
+  IMAGE: ttl.sh/salsa/maventestapp:1h
+
+jobs:
+  build-maven:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Push image
+        run: |
+          docker build jvm/maven/ -t ${{ env.IMAGE }} && docker push ${{ env.IMAGE }}
+
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Setup Maven
+        uses: stCarolas/setup-maven@v.4.5
+        with:
+          maven-version: '3.8.1'
+
+      - run: mvn install -Dexec.mainClass="HelloWorld" -DexcludeTestProject -f jvm/maven/pom.xml
+
+      - name: Generate, sign and upload SBOM
+        uses: ./
+        with:
+          ecosystem: 'maven'
+          image: ${{ env.IMAGE }}
+          byosbom: maven/target/bom.json
+          key: cosign.key
+          workdir: 'jvm'
