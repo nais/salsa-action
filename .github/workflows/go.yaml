@@ -1,5 +1,5 @@
-name: Go Test
-on: [push]
+name: Go Salsa Action Example
+on: [ push ]
 
 env:
   IMAGE: ttl.sh/salsa/gotestapp:1h
@@ -10,15 +10,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Push image
-        run: |
-          docker build golang/ -t ${{ env.IMAGE }} && docker push ${{ env.IMAGE }}
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          tags: ${{ env.IMAGE }}
+          context: ./golang
       - name: Generate, sign and upload SBOM
         uses: ./
-        #working-directory: golang
         with:
           ecosystem: 'go'
-          image: ${{ env.IMAGE }}
+          image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
           maindir: '.'
           workdir: 'golang'
           key: cosign.key

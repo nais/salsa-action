@@ -1,18 +1,18 @@
-name: Maven Salsa Action Example
+name: Gradle Salsa Action Example
 on: [ push ]
 
 env:
-  IMAGE: ttl.sh/salsa/maventestapp:1h
+  IMAGE: ttl.sh/salsa/gradletestapp:1h
 
 jobs:
-  build-maven:
+  build-gradle:
     name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Build and push
-        uses: docker/build-push-action@v4
         id: docker_build
+        uses: docker/build-push-action@v4
         with:
           push: true
           tags: ${{ env.IMAGE }}
@@ -20,18 +20,19 @@ jobs:
 
       - uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'
-          java-version: '11'
+          java-version: 15
+          distribution: 'zulu'
+          cache: 'gradle'
 
       - run: |
-          cd jvm/maven
-          ./mvnw install -Dexec.mainClass="HelloWorld" -DexcludeTestProject -f pom.xml
+          cd jvm/gradle
+          ./gradlew cyclonedxBom
 
       - name: Generate, sign and upload SBOM
         uses: ./
         with:
-          ecosystem: 'maven'
+          ecosystem: 'gradle'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
-          byosbom: maven/target/bom.json
+          byosbom: gradle/build/reports/bom.json
           key: cosign.key
           workdir: 'jvm'

@@ -20,7 +20,7 @@ inputs:
     description: 'use existing SBOM file instead of generating one'
     required: false
 runs:
-  using: "composite"
+  using:
   steps:
     - name: Install Go
       uses: actions/setup-go@v2
@@ -69,7 +69,7 @@ runs:
           exit 1
         fi
         if [[ ${{ inputs.byosbom }} != *.json ]]; then
-          echo "File is not a json file!"
+          echo "File ${{ inputs.byosbom }} is not a json file!"
           exit 1
         fi
         echo "SBOM=${{ inputs.byosbom }}" >> $GITHUB_ENV
