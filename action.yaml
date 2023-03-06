@@ -20,7 +20,7 @@ inputs:
     description: 'use existing SBOM file instead of generating one'
     required: false
 runs:
-  using:
+  using: composite
   steps:
     - name: Install Go
       uses: actions/setup-go@v2
