@@ -24,15 +24,15 @@ jobs:
           distribution: 'zulu'
           cache: 'gradle'
 
-      - run: |
-          cd jvm/gradle
-          ./gradlew cyclonedxBom
+     # - run: |
+     #     cd jvm/gradle
+     #     ./gradlew cyclonedxBom
 
       - name: Generate, sign and upload SBOM
         uses: ./
         with:
           ecosystem: 'gradle'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
-          byosbom: gradle/build/reports/bom.json
+          #byosbom: gradle/build/reports/bom.json
           key: cosign.key
-          workdir: 'jvm'
+          workdir: 'jvm/gradle'

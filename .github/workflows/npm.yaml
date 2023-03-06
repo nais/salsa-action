@@ -1,0 +1,32 @@
+name: Npm Salsa Action Example
+on: [ push ]
+
+env:
+  IMAGE: ttl.sh/salsa/npmtestapp:1h
+
+jobs:
+  build-npm:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          tags: ${{ env.IMAGE }}
+          context: ./golang
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+      - run: npx @cyclonedx/cyclonedx-npm --output-file bom.json
+      - name: Generate, sign and upload SBOM
+        uses: ./
+        with:
+          ecosystem: 'npm'
+          byosbom: npm/bom.json
+          image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
+          workdir: 'npm'
+          key: cosign.key

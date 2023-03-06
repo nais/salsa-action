@@ -3,7 +3,9 @@ description: 'Greet someone'
 inputs:
   ecosystem:
     description: |-
-      description of the ecosystem to use, accepted values are go, gradle, maven'
+      description of the ecosystem to use, accepted values are go, gradle, maven and npm.
+      maven and gradle only supports wrappers. If the application requires private repositories,
+      please see: bring your own sbom alias byosbom
     required: true
   image:
     description: |-
@@ -40,6 +42,12 @@ runs:
     #      with:
     #        cosign-release: 'v2.0.0'
 
+    - name: Change directory to workdir
+      run: |
+        echo WORKDIR=${{ inputs.workdir }} >> $GITHUB_ENV
+        cd ${{ inputs.workdir }}
+      shell: bash
+
     # TODO: install and verify checksum etc
     - name: Install cyclonedx-gomod
       if: ${{ inputs.byosbom == '' && inputs.ecosystem == 'go' }}
@@ -51,10 +59,7 @@ runs:
       if: ${{ inputs.ecosystem == 'go' }}
       shell: bash
       run: |
-        WORKDIR=${{ inputs.workdir }}
-        if [ "$WORKDIR" != "" ]; then
-          cd $WORKDIR
-        fi
+        cd $WORKDIR
         cyclonedx-gomod app -output ./sbom.json -main ${{ inputs.maindir }} -json=true
         echo "SBOM=sbom.json" >> $GITHUB_ENV
     #    - name: CycloneDX GoMod Generate SBOM
@@ -64,13 +69,21 @@ runs:
     #      with:
     #        args: app -output ./sbom.json -main ${{ inputs.maindir }} -json=true
 
-    - name: Change directory to workdir
-      run: |
-        WORKDIR=${{ inputs.workdir }}
-        if [ "$WORKDIR" != "" ]; then
-          cd $WORKDIR
-        fi
+    - name: Generate cyclonedx-maven sbom
+      if: ${{ inputs.byosbom == '' && inputs.ecosystem == 'maven' }}
       shell: bash
+      run: |
+        cd $WORKDIR
+        ./mvnw org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom
+        echo "SBOM=target/bom.json" >> $GITHUB_ENV
+
+    - name: Generate cyclonedx-gradle sbom
+      if: ${{ inputs.byosbom == '' && inputs.ecosystem == 'gradle' }}
+      shell: bash
+      run: |
+        cd $WORKDIR
+        ./gradlew cyclonedxBom
+        echo "SBOM=build/reports/bom.json" >> $GITHUB_ENV
 
     - name: Attest BYOSBOM
       if: ${{ inputs.byosbom != '' }}

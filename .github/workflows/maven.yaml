@@ -23,15 +23,10 @@ jobs:
           distribution: 'temurin'
           java-version: '11'
 
-      - run: |
-          cd jvm/maven
-          ./mvnw install -Dexec.mainClass="HelloWorld" -DexcludeTestProject -f pom.xml
-
       - name: Generate, sign and upload SBOM
         uses: ./
         with:
           ecosystem: 'maven'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
-          byosbom: maven/target/bom.json
           key: cosign.key
-          workdir: 'jvm'
+          workdir: 'jvm/maven'
