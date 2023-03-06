@@ -2,22 +2,30 @@ name: 'Hello World'
 description: 'Greet someone'
 inputs:
   ecosystem:
-    description: 'ecosystem'
+    description: |-
+      description of the ecosystem to use, accepted values are go, gradle, maven'
     required: true
   image:
-    description: 'image'
+    description: |-
+      image to sign and upload attestation, must be in the form of <image>:<tag>@<digest>
     required: true
   maindir:
-    description: 'maindir go relative to workdir'
+    description: |-
+      maindir go relative to workdir
     required: true
+    default: '.'
   workdir:
-    description: 'workdir for sbom generation'
+    description: |-
+      workdir for sbom generation
     required: false
   key:
-    description: 'cosign key'
+    description: |-
+      path to key or KMS url, used for signing and uploading attestation
     required: true
   byosbom:
-    description: 'use existing SBOM file instead of generating one'
+    description: |-
+      Bring your own Sbom, use existing SBOM file instead of generating one, must be a json file and 
+      accepted formats are CycloneDX'
     required: false
 runs:
   using: composite
@@ -34,7 +42,7 @@ runs:
 
     # TODO: install and verify checksum etc
     - name: Install cyclonedx-gomod
-      if: ${{ inputs.ecosystem == 'go' }}
+      if: ${{ inputs.byosbom == '' && inputs.ecosystem == 'go' }}
       run: |
         go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
         echo "Installed cyclonedx-gomod"
@@ -62,7 +70,7 @@ runs:
         fi
 
     - name: Attest BYOSBOM
-      if: ${{ inputs.byosbom != '' || inputs.ecosystem == 'maven' || inputs.ecosystem == 'gradle' }}
+      if: ${{ inputs.byosbom != '' }}
       run: |
         if [ ! -f ${{ inputs.workdir }}/inputs.byosbom }} ]; then
           echo "File ${{ inputs.byosbom }} not found!"

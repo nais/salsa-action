@@ -22,6 +22,5 @@ jobs:
         with:
           ecosystem: 'go'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
-          maindir: '.'
           workdir: 'golang'
           key: cosign.key
