@@ -5,7 +5,7 @@ inputs:
     description: |-
       description of the ecosystem to use, accepted values are go, gradle, maven and npm.
       maven and gradle only supports wrappers. If the application requires private repositories,
-      please see: bring your own sbom alias byosbom
+      please see: bring your own sbom alias 'byosbom'
     required: true
   image:
     description: |-
@@ -27,7 +27,7 @@ inputs:
   byosbom:
     description: |-
       Bring your own Sbom, use existing SBOM file instead of generating one, must be a json file and 
-      accepted formats are CycloneDX'
+      accepted formats are CycloneDX. If the file is not in the root of the repository, please see: workdir
     required: false
 runs:
   using: composite
@@ -84,6 +84,14 @@ runs:
         cd $WORKDIR
         ./gradlew cyclonedxBom
         echo "SBOM=build/reports/bom.json" >> $GITHUB_ENV
+
+    - name: Generate cyclonedx-npm sbom
+      if: ${{ inputs.byosbom == '' && inputs.ecosystem == 'npm' }}
+      shell: bash
+      run: |
+        cd $WORKDIR
+        npx @cyclonedx/cyclonedx-npm --output-file sbom.json
+        echo "SBOM=sbom.json" >> $GITHUB_ENV
 
     - name: Attest BYOSBOM
       if: ${{ inputs.byosbom != '' }}
