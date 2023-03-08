@@ -1,5 +1,5 @@
-name: 'Hello World'
-description: 'Greet someone'
+name: 'Nais Salsa Action'
+description: 'Generate, sign and upload SBOM'
 inputs:
   ecosystem:
     description: |-
@@ -22,8 +22,14 @@ inputs:
     required: false
   key:
     description: |-
-      path to key or KMS url, used for signing and uploading attestation
-    required: true
+      path to the private key file or KMS URI
+    required: false
+    default: 'cosign.key'
+  password:
+    description: |-
+      password for the private key file
+    required: false
+    default: ''
   byosbom:
     description: |-
       Bring your own SBOM, use existing SBOM file instead of generating one, must be a json file and 
@@ -37,10 +43,6 @@ inputs:
 runs:
   using: composite
   steps:
-
-    - name: Export key
-      run: echo KEY=${{ inputs.key }} >> $GITHUB_ENV
-      shell: bash
 
     - name: Export sbom filename
       run: echo SBOM=${{ inputs.sbom }} >> $GITHUB_ENV
@@ -147,7 +149,8 @@ runs:
       run: |
         echo "Using SBOM ${{ env.SBOM }}"
         echo "Signing SBOM for ${{ inputs.image }}"
-        export COSIGN_PASSWORD=""
-        cosign attest --tlog-upload=false --predicate ${{ env.WORKDIR }}/${{ env.SBOM }} --type cyclonedx --key ${{ env.WORKDIR }}/${{ env.KEY }} ${{ inputs.image }}
+        cosign attest --tlog-upload=false --predicate ${{ env.WORKDIR }}/${{ env.SBOM }} --type cyclonedx --key ${{ inputs.key }} ${{ inputs.image }}
         echo "Attestation finished"
       shell: bash
+      env:
+        COSIGN_PASSWORD: ${{ inputs.password }}

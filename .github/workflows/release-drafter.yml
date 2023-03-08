@@ -2,7 +2,7 @@ name: Build release draft
 
 on:
   workflow_run:
-    workflows: [ Go Salsa Action, Gradle Salsa Action, Maven Salsa Action, Python Salsa Action, Npm Salsa Action ]
+    workflows: [ Go Salsa Action ]
     types: [ completed ]
     branches: [ main ]
 

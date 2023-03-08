@@ -28,4 +28,3 @@ jobs:
           ecosystem: 'npm'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
           workdir: 'npm'
-          key: cosign.key

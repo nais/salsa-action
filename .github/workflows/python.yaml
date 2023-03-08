@@ -27,4 +27,3 @@ jobs:
           ecosystem: 'python:poetry'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
           workdir: 'python'
-          key: cosign.key

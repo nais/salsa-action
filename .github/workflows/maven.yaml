@@ -28,5 +28,4 @@ jobs:
         with:
           ecosystem: 'maven'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
-          key: cosign.key
           workdir: 'jvm/maven'

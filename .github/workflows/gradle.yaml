@@ -29,5 +29,4 @@ jobs:
         with:
           ecosystem: 'gradle'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
-          key: cosign.key
           workdir: 'jvm/gradle'
