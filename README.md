@@ -5,8 +5,6 @@
 CycloneDX is a lightweight software bill-of-materials (SBOM) standard designed for use in application security contexts
 and supply chain component analysis.
 
-`cyclonedxVersion` = [CycloneDX GitHub Releases](https://github.com/CycloneDX/cyclonedx-gradle-plugin/releases/)
-
 `byosbom` is where you can specify a generated bom file.
 
 ### go
@@ -14,6 +12,8 @@ and supply chain component analysis.
 There are no pre-requisites for this ecosystem.
 
 ### gradle
+
+`$cyclonedxVersion` = [CycloneDX Gradle Releases](https://github.com/CycloneDX/cyclonedx-gradle-plugin/releases/)
 
 Add plugin to your `build.gradle` file:
 
@@ -26,6 +26,8 @@ plugins {
 Project most use gradle wrapper for the action to work.
 
 ### maven
+
+`$cyclonedxVersion` [CycloneDX Maven Releases](https://github.com/CycloneDX/cyclonedx-maven-plugin/releases)
 
 Add plugin to your `pom.xml` file:
 

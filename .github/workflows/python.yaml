@@ -1,4 +1,4 @@
-name: Python Salsa Action Example
+name: Python Salsa Action
 on: [ push ]
 
 env:

@@ -1,0 +1,16 @@
+name: Build release draft
+
+on:
+  workflow_run:
+    workflows: [ Go Salsa Action, Gradle Salsa Action, Maven Salsa Action, Python Salsa Action, Npm Salsa Action ]
+    types: [ completed ]
+    branches: [ main ]
+
+jobs:
+  release-notes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Release Drafter
+        uses: release-drafter/release-drafter@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

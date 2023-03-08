@@ -1,4 +1,4 @@
-name: Npm Salsa Action Example
+name: Npm Salsa Action
 on: [ push ]
 
 env:

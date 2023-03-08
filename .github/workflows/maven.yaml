@@ -1,4 +1,4 @@
-name: Maven Salsa Action Example
+name: Maven Salsa Action
 on: [ push ]
 
 env:

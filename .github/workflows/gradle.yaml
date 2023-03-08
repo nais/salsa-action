@@ -1,4 +1,4 @@
-name: Gradle Salsa Action Example
+name: Gradle Salsa Action
 on: [ push ]
 
 env:
