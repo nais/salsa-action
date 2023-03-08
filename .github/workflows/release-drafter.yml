@@ -7,8 +7,14 @@ on:
     branches: [ main ]
 
 jobs:
-  release-notes:
-    runs-on: ubuntu-latest
+  on-failure:
+    runs-on: ubuntu-20.04
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    steps:
+      - run: echo 'The triggering workflow failed' && exit 1
+  on-success:
+    runs-on: ubuntu-20.04
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Release Drafter
         uses: release-drafter/release-drafter@v5
