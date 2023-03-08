@@ -1,11 +1,11 @@
-name: Gradle Salsa Action Example
+name: Python Salsa Action Example
 on: [ push ]
 
 env:
-  IMAGE: ttl.sh/salsa/gradletestapp:1h
+  IMAGE: ttl.sh/salsa/pythontestapp:1h
 
 jobs:
-  build-gradle:
+  build-python:
     name: Build
     runs-on: ubuntu-latest
     steps:
@@ -16,18 +16,15 @@ jobs:
         with:
           push: true
           tags: ${{ env.IMAGE }}
-          context: ./jvm
-
-      - uses: actions/setup-java@v3
+          context: ./python
+      - uses: actions/setup-python@v4
         with:
-          java-version: 15
-          distribution: 'zulu'
-          cache: 'gradle'
+          python-version: 3.10
 
       - name: Generate, sign and upload SBOM
         uses: ./
         with:
-          ecosystem: 'gradle'
+          ecosystem: 'python:poetry'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
+          workdir: 'python'
           key: cosign.key
-          workdir: 'jvm/gradle'

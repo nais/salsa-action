@@ -14,7 +14,7 @@ inputs:
   maindir:
     description: |-
       maindir go relative to workdir
-    required: true
+    required: false
     default: '.'
   workdir:
     description: |-
@@ -26,21 +26,25 @@ inputs:
     required: true
   byosbom:
     description: |-
-      Bring your own Sbom, use existing SBOM file instead of generating one, must be a json file and 
+      Bring your own SBOM, use existing SBOM file instead of generating one, must be a json file and 
       accepted formats are CycloneDX. If the file is not in the root of the repository, please see: workdir
     required: false
+  sbom:
+    description: |-
+      filename of the SBOM file, defaults to sbom.json
+    required: false
+    default: 'sbom.json'
 runs:
   using: composite
   steps:
-    - name: Install Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: '1.20.1'
 
-    #    - name: Install Cosign
-    #      uses: sigstore/cosign-installer@main
-    #      with:
-    #        cosign-release: 'v2.0.0'
+    - name: Export key
+      run: echo KEY=${{ inputs.key }} >> $GITHUB_ENV
+      shell: bash
+
+    - name: Export sbom filename
+      run: echo SBOM=${{ inputs.sbom }} >> $GITHUB_ENV
+      shell: bash
 
     - name: Change directory to workdir
       run: |
@@ -48,52 +52,71 @@ runs:
         cd ${{ inputs.workdir }}
       shell: bash
 
-    # TODO: install and verify checksum etc
+    - name: Install Go
+      if: ${{ inputs.byosbom == '' && inputs.ecosystem == 'go' }}
+      uses: actions/setup-go@v3
+      with:
+        go-version: '1.20.1'
+
     - name: Install cyclonedx-gomod
       if: ${{ inputs.byosbom == '' && inputs.ecosystem == 'go' }}
       shell: bash
       run: |
         go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
         echo "Installed cyclonedx-gomod"
-    - name: CycloneDX GoMod Generate SBOM
+
+    - name: Go CycloneDX sbom
       if: ${{ inputs.ecosystem == 'go' }}
       shell: bash
       run: |
         cd $WORKDIR
-        cyclonedx-gomod app -output ./sbom.json -main ${{ inputs.maindir }} -json=true
-        echo "SBOM=sbom.json" >> $GITHUB_ENV
-    #    - name: CycloneDX GoMod Generate SBOM
-    #      if: ${{ inputs.ecosystem == 'go' }}
-    #      uses: CycloneDX/gh-gomod-generate-sbom@v1.1.0
-    #      working-directory: golang
-    #      with:
-    #        args: app -output ./sbom.json -main ${{ inputs.maindir }} -json=true
+        cyclonedx-gomod app -output ./${{ env.SBOM }} -main ${{ inputs.maindir }} -json=true
+        echo "Generated Go ${{ env.SBOM }}"
 
-    - name: Generate cyclonedx-maven sbom
+    - name: Maven CycloneDX sbom
       if: ${{ inputs.byosbom == '' && inputs.ecosystem == 'maven' }}
       shell: bash
       run: |
         cd $WORKDIR
         ./mvnw org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom
-        echo "SBOM=target/bom.json" >> $GITHUB_ENV
+        echo "SBOM=target/${{ env.SBOM }}" >> $GITHUB_ENV
+        echo "Generated Maven ${{ env.SBOM }}"
 
-    - name: Generate cyclonedx-gradle sbom
+    - name: Gradle cycloneDX sbom
       if: ${{ inputs.byosbom == '' && inputs.ecosystem == 'gradle' }}
       shell: bash
       run: |
         cd $WORKDIR
         ./gradlew cyclonedxBom
-        echo "SBOM=build/reports/bom.json" >> $GITHUB_ENV
+        echo "SBOM=build/reports/${{ env.SBOM }}" >> $GITHUB_ENV
+        echo "Generated Gradle ${{ env.SBOM }}"
 
-    - name: Generate cyclonedx-npm sbom
+    - name: Npm CycloneDX sbom
       if: ${{ inputs.byosbom == '' && inputs.ecosystem == 'npm' }}
       shell: bash
       run: |
         cd $WORKDIR
-        npx @cyclonedx/cyclonedx-npm --output-file sbom.json
-        echo "SBOM=sbom.json" >> $GITHUB_ENV
+        npx @cyclonedx/cyclonedx-npm --output-file ${{ env.SBOM }}
+        echo "Generated Npm ${{ env.SBOM }}"
 
-    - name: Attest BYOSBOM
+    - name: Python CycloneDX sbom
+      if: ${{ inputs.byosbom == '' && contains(inputs.ecosystem, 'python') }}
+      shell: bash
+      run: |
+        # greedy front trim matches everything up to and including the last colon
+        ecosystem="${{ inputs.ecosystem }}"
+        build_type="${ecosystem##*:}"
+        if [[ "$build_type" == '' ||  "$build_type" != 'poetry' && "$build_type" != 'pip' && "$build_type" != 'conda-json' && "$build_type" != 'requirements' ]]; then
+          echo "a project build type is required for python ecosystem"
+          echo "accepted values are pip, poetry, conda-json and requirements"
+          exit 1
+        fi
+        cd $WORKDIR
+        pip install cyclonedx-bom
+        cyclonedx-py --"$build_type" -o ${{ env.SBOM }} --format json
+        echo "Generated python ${{ env.SBOM }}"
+
+    - name: Attest with byosbom
       if: ${{ inputs.byosbom != '' }}
       run: |
         if [ ! -f ${{ inputs.workdir }}/inputs.byosbom }} ]; then
@@ -105,12 +128,18 @@ runs:
           exit 1
         fi
         echo "SBOM=${{ inputs.byosbom }}" >> $GITHUB_ENV
+        echo "Using BYOSBOM ${{ env.SBOM }}"
       shell: bash
+
+    # - name: Install Cosign
+    #   uses: sigstore/cosign-installer@main
+    #   with:
+    #     cosign-release: 'v2.0.0'
 
     - name: Install Cosign
       run: |
         curl https://github.com/sigstore/cosign/releases/download/v2.0.0/cosign-linux-arm -Lo /usr/local/bin/cosign
-        chmod +x /usr/local/bin/cosign 
+        chmod +x /usr/local/bin/cosign
         echo "Installed cosign"
       shell: bash
 
@@ -119,6 +148,6 @@ runs:
         echo "Using SBOM ${{ env.SBOM }}"
         echo "Signing SBOM for ${{ inputs.image }}"
         export COSIGN_PASSWORD=""
-        cosign attest --tlog-upload=false --predicate ${{ inputs.workdir }}/${{ env.SBOM }} --type cyclonedx --key ${{ inputs.workdir }}/${{ inputs.key }} ${{ inputs.image }}
+        cosign attest --tlog-upload=false --predicate ${{ env.WORKDIR }}/${{ env.SBOM }} --type cyclonedx --key ${{ env.WORKDIR }}/${{ env.KEY }} ${{ inputs.image }}
         echo "Attestation finished"
       shell: bash
