@@ -1,4 +1,4 @@
 /.idea/
-jvm/maven/target/
-jvm/gradle/build/
-jvm/gradle/.gradle/
+ci/jvm/maven/target/
+ci/jvm/gradle/build/
+ci/jvm/gradle/.gradle/

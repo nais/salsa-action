@@ -3,7 +3,7 @@ RUN apk add --no-cache git make curl
 ENV GOOS=linux
 ENV CGO_ENABLED=0
 ENV GO111MODULE=on
-COPY .. /src
+COPY ../.. /src
 RUN ls -la
 WORKDIR /src
 RUN go build -a -installsuffix cgo -o /bin/testapp *.go

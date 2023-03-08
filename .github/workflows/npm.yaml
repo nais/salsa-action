@@ -3,6 +3,8 @@ on: [ push ]
 
 env:
   IMAGE: ttl.sh/salsa/npmtestapp:1h
+  CONTEXT: ci/node
+  KEY: ci/cosign.key
 
 jobs:
   build-npm:
@@ -16,7 +18,7 @@ jobs:
         with:
           push: true
           tags: ${{ env.IMAGE }}
-          context: ./node
+          context: ./${{ env.CONTEXT }}
       - uses: actions/setup-node@v3
         with:
           node-version: 16
@@ -25,4 +27,5 @@ jobs:
         with:
           ecosystem: 'node:npm'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
-          workdir: 'node/npm'
+          workdir: ${{ env.CONTEXT }}/npm
+          key: ${{ env.KEY }}

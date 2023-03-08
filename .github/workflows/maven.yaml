@@ -3,6 +3,8 @@ on: [ push ]
 
 env:
   IMAGE: ttl.sh/salsa/maventestapp:1h
+  CONTEXT: ci/jvm
+  KEY: ci/cosign.key
 
 jobs:
   build-maven:
@@ -16,7 +18,7 @@ jobs:
         with:
           push: true
           tags: ${{ env.IMAGE }}
-          context: ./jvm
+          context: ./${{ env.CONTEXT }}
 
       - uses: actions/setup-java@v3
         with:
@@ -28,4 +30,5 @@ jobs:
         with:
           ecosystem: 'maven'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
-          workdir: 'jvm/maven'
+          workdir: ${{ env.CONTEXT }}/maven
+          key: ${{ env.KEY }}

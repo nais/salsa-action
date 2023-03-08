@@ -3,6 +3,8 @@ on: [ push ]
 
 env:
   IMAGE: ttl.sh/salsa/pythontestapp:1h
+  CONTEXT: ci/python
+  KEY: ci/cosign.key
 
 jobs:
   build-python:
@@ -16,7 +18,7 @@ jobs:
         with:
           push: true
           tags: ${{ env.IMAGE }}
-          context: ./python
+          context: ./${{ env.CONTEXT }}
       - uses: actions/setup-python@v4
         with:
           python-version: 3.11.2
@@ -26,4 +28,5 @@ jobs:
         with:
           ecosystem: 'python:poetry'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
-          workdir: 'python'
+          workdir: ${{ env.CONTEXT }}
+          key: ${{ env.KEY }}

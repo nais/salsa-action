@@ -3,6 +3,8 @@ on: [ push ]
 
 env:
   IMAGE: ttl.sh/salsa/gotestapp:1h
+  CONTEXT: ci/golang
+  KEY: ci/cosign.key
 
 jobs:
   build-go:
@@ -10,16 +12,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Build and push
         id: docker_build
         uses: docker/build-push-action@v4
         with:
           push: true
           tags: ${{ env.IMAGE }}
-          context: ./golang
+          context: ./${{ env.CONTEXT }}
+
       - name: Generate, sign and upload SBOM
         uses: ./
         with:
           ecosystem: 'go'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
-          workdir: 'golang'
+          workdir: ${{ env.CONTEXT }}
+          key: ${{ env.KEY }}

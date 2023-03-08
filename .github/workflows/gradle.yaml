@@ -3,6 +3,8 @@ on: [ push ]
 
 env:
   IMAGE: ttl.sh/salsa/gradletestapp:1h
+  CONTEXT: ci/jvm
+  KEY: ci/cosign.key
 
 jobs:
   build-gradle:
@@ -16,7 +18,7 @@ jobs:
         with:
           push: true
           tags: ${{ env.IMAGE }}
-          context: ./jvm
+          context: ./${{ env.CONTEXT }}
 
       - uses: actions/setup-java@v3
         with:
@@ -29,4 +31,5 @@ jobs:
         with:
           ecosystem: 'gradle'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
-          workdir: 'jvm/gradle'
+          workdir: ${{ env.CONTEXT }}/gradle
+          key: ${{ env.KEY }}
