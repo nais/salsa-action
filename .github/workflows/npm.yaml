@@ -16,15 +16,15 @@ jobs:
         with:
           push: true
           tags: ${{ env.IMAGE }}
-          context: ./npm
+          context: ./node
       - uses: actions/setup-node@v3
         with:
           node-version: 16
-          cache: 'npm'
-          cache-dependency-path: npm/package-lock.json
+          cache: 'node/npm'
+          cache-dependency-path: node/npm/package-lock.json
       - name: Generate, sign and upload SBOM
         uses: ./
         with:
-          ecosystem: 'npm'
+          ecosystem: 'node:npm'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
-          workdir: 'npm'
+          workdir: 'node/npm'

@@ -1,5 +1,7 @@
 # salsa-action
 
+🚧 🏗️ this project is an ealy development stage 🏗️ 🚧
+
 ## Eco-system
 
 CycloneDX is a lightweight software bill-of-materials (SBOM) standard designed for use in application security contexts
@@ -11,7 +13,9 @@ and supply chain component analysis.
 
 There are no pre-requisites for this ecosystem.
 
-### gradle
+### jvm
+
+#### gradle
 
 `$cyclonedxVersion` = [CycloneDX Gradle Releases](https://github.com/CycloneDX/cyclonedx-gradle-plugin/releases/)
 
@@ -25,7 +29,7 @@ plugins {
 
 Project most use gradle wrapper for the action to work.
 
-### maven
+#### maven
 
 `$cyclonedxVersion` [CycloneDX Maven Releases](https://github.com/CycloneDX/cyclonedx-maven-plugin/releases)
 
@@ -44,9 +48,15 @@ Project most use maven wrapper for the action to work.
 
 For more information, see the [CycloneDX Maven Plugin](https://github.com/CycloneDX/cyclonedx-maven-plugin) project.
 
-### npm
+### Node
+
+#### npm
 
 There are no pre-requisites for this ecosystem.
+
+#### yarn
+
+Not supported yet.
 
 ### python
 
