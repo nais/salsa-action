@@ -20,8 +20,6 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16
-          cache: 'node/npm'
-          cache-dependency-path: node/npm/package-lock.json
       - name: Generate, sign and upload SBOM
         uses: ./
         with:
