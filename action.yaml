@@ -6,8 +6,7 @@ inputs:
       Description of the ecosystem to use, accepted values are go, gradle and maven.
       For node, use node:npm and for python use python:poetry etc.
       Maven and Gradle only supports wrappers. 
-      If the application requires private repositories,
-      please see: bring your own sbom alias 'byosbom'
+      If the application is depending on private repositories, please see 'bring your own sbom' alias 'byosbom'
     required: true
   image:
     description: |-
@@ -53,6 +52,15 @@ runs:
     - name: Change directory to workdir
       run: |
         echo WORKDIR=${{ inputs.workdir }} >> $GITHUB_ENV
+      shell: bash
+
+    - name: Check Image format
+      run: |
+        if [[ ${{ inputs.image }} != *:*@* ]]; then
+          echo "Image must be in the form of <image>:<tag>@<digest>"
+          exit 1
+        fi
+        echo IMAGE=${{ inputs.image }} >> $GITHUB_ENV
       shell: bash
 
     - name: Install Go
@@ -141,24 +149,31 @@ runs:
         echo "SBOM=${{ inputs.byosbom }}" >> $GITHUB_ENV
         echo "Using BYOSBOM ${{ env.SBOM }}"
       shell: bash
-
-    - name: Install Cosign
-      uses: sigstore/cosign-installer@main
-      with:
-        cosign-release: 'v2.0.0'
-
+    #
     #- name: Install Cosign
-    #  run: |
-    #    curl https://github.com/sigstore/cosign/releases/download/v2.0.0/cosign-linux-arm -Lo /usr/local/bin/cosign
-    #    chmod +x /usr/local/bin/cosign
-    #    echo "Installed cosign"
-    #  shell: bash
+    #  uses: sigstore/cosign-installer@main
+    #  with:
+    #    cosign-release: 'v2.0.0'
+    #
+    - name: Install Cosign
+      run: |
+        curl https://github.com/sigstore/cosign/releases/download/v2.0.0/cosign-linux-arm -Lo /usr/local/bin/cosign
+        chmod +x /usr/local/bin/cosign
+        echo "Installed cosign"
+      shell: bash
 
     - name: Cosign attest and upload to OCI registry
       run: |
         echo "Using SBOM ${{ env.SBOM }}"
-        echo "Signing SBOM for ${{ inputs.image }}"
-        cosign attest --tlog-upload=false --predicate ${{ env.WORKDIR }}/${{ env.SBOM }} --type cyclonedx --key ${{ inputs.key }} ${{ inputs.image }}
+        echo "Signing SBOM for ${{ env.IMAGE }}"
+        if [[ inputs.key != '' ]]; then
+          cosign attest --tlog-upload=false --predicate ${{ env.WORKDIR }}/${{ env.SBOM }} --type cyclonedx --key ${{ inputs.key }} ${{ env.IMAGE }}
+        else
+          # TODO --identity-token flag used for pre-generated tokens (etc. GKE workload identity, EXPERIMENTAL)
+          # TODO --oidc-client-id, --oidc-client-secret, --oidc-issuer (flags used for GITHUB_TOKEN, EXPERIMENTAL)
+           echo "keyless signing dry-run"
+          # cosign attest --tlog-upload=false --predicate ${{ env.WORKDIR }}/${{ env.SBOM }} --type cyclonedx ${{ env.IMAGE }}
+        fi
         echo "Attestation finished"
       shell: bash
       env:
