@@ -28,5 +28,5 @@ jobs:
         with:
           ecosystem: 'python:poetry'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
-          workdir: ${{ env.CONTEXT }}
+          context: ${{ env.CONTEXT }}
           key: ${{ env.KEY }}

@@ -26,5 +26,5 @@ jobs:
         with:
           ecosystem: 'go'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
-          workdir: ${{ env.CONTEXT }}
+          context: ${{ env.CONTEXT }}
           key: ${{ env.KEY }}

@@ -17,9 +17,10 @@ inputs:
       go main directory for sbom generation
     required: false
     default: '.'
-  workdir:
+  context:
     description: |-
-      working directory for sbom generation
+      current working directory for sbom generation, defaults to root of the repository
+      useful in mono-repos or when the build file is not in the root of the repository
     required: false
   key:
     description: |-
@@ -34,7 +35,7 @@ inputs:
   byosbom:
     description: |-
       Bring your own SBOM, use existing SBOM file instead of generating one, must be a json file and 
-      accepted formats are CycloneDX. If the file is not in the root of the repository, please see 'workdir'
+      accepted formats are CycloneDX. If the file is not in the root of the repository, please see 'context'
     required: false
   sbom:
     description: |-
@@ -49,9 +50,9 @@ runs:
       run: echo SBOM=${{ inputs.sbom }} >> $GITHUB_ENV
       shell: bash
 
-    - name: Change directory to workdir
+    - name: Change directory to current context
       run: |
-        echo WORKDIR=${{ inputs.workdir }} >> $GITHUB_ENV
+        echo CONTEXT=${{ inputs.context }} >> $GITHUB_ENV
       shell: bash
 
     - name: Check Image format
@@ -80,7 +81,7 @@ runs:
       if: ${{ inputs.byosbom == '' && inputs.ecosystem == 'go' }}
       shell: bash
       run: |
-        cd $WORKDIR
+        cd $CONTEXT
         cyclonedx-gomod app -output ./${{ env.SBOM }} -main ${{ inputs.maindir }} -json=true
         echo "Generated Go ${{ env.SBOM }}"
 
@@ -88,7 +89,7 @@ runs:
       if: ${{ inputs.byosbom == '' && inputs.ecosystem == 'maven' }}
       shell: bash
       run: |
-        cd $WORKDIR
+        cd $CONTEXT
         ./mvnw org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom
         echo "SBOM=target/${{ env.SBOM }}" >> $GITHUB_ENV
         echo "Generated Maven ${{ env.SBOM }}"
@@ -97,7 +98,7 @@ runs:
       if: ${{ inputs.byosbom == '' && inputs.ecosystem == 'gradle' }}
       shell: bash
       run: |
-        cd $WORKDIR
+        cd $CONTEXT
         ./gradlew cyclonedxBom
         echo "SBOM=build/reports/${{ env.SBOM }}" >> $GITHUB_ENV
         echo "Generated Gradle ${{ env.SBOM }}"
@@ -114,7 +115,7 @@ runs:
           echo "yarn is not supported at the moment"
           exit 1
         fi
-        cd $WORKDIR
+        cd $CONTEXT
         npx @cyclonedx/cyclonedx-npm --output-file ${{ env.SBOM }}
         echo "Generated ${{ inputs.ecosystem }} ${{ env.SBOM }}"
 
@@ -130,7 +131,7 @@ runs:
           echo "accepted values are pip, poetry, conda-json and requirements"
           exit 1
         fi
-        cd $WORKDIR
+        cd $CONTEXT
         pip install cyclonedx-bom
         cyclonedx-py --"$build_type" -o ${{ env.SBOM }} --format json
         echo "Generated ${{ inputs.ecosystem }} ${{ env.SBOM }}"
@@ -138,7 +139,7 @@ runs:
     - name: Attest with byosbom
       if: ${{ inputs.byosbom != '' }}
       run: |
-        if [ ! -f ${{ inputs.workdir }}/inputs.byosbom }} ]; then
+        if [ ! -f ${{ inputs.context }}/inputs.byosbom }} ]; then
           echo "File ${{ inputs.byosbom }} not found!"
           exit 1
         fi
@@ -167,12 +168,12 @@ runs:
         echo "Using SBOM ${{ env.SBOM }}"
         echo "Signing SBOM for ${{ env.IMAGE }}"
         if [[ inputs.key != '' ]]; then
-          cosign attest --tlog-upload=false --predicate ${{ env.WORKDIR }}/${{ env.SBOM }} --type cyclonedx --key ${{ inputs.key }} ${{ env.IMAGE }}
+          cosign attest --tlog-upload=false --predicate ${{ env.CONTEXT }}/${{ env.SBOM }} --type cyclonedx --key ${{ inputs.key }} ${{ env.IMAGE }}
         else
           # TODO --identity-token flag used for pre-generated tokens (etc. GKE workload identity, EXPERIMENTAL)
           # TODO --oidc-client-id, --oidc-client-secret, --oidc-issuer (flags used for GITHUB_TOKEN, EXPERIMENTAL)
            echo "keyless signing dry-run"
-          # cosign attest --tlog-upload=false --predicate ${{ env.WORKDIR }}/${{ env.SBOM }} --type cyclonedx ${{ env.IMAGE }}
+          # cosign attest --tlog-upload=false --predicate ${{ env.CONTEXT }}/${{ env.SBOM }} --type cyclonedx ${{ env.IMAGE }}
         fi
         echo "Attestation finished"
       shell: bash

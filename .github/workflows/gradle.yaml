@@ -31,5 +31,5 @@ jobs:
         with:
           ecosystem: 'gradle'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
-          workdir: ${{ env.CONTEXT }}/gradle
+          context: ${{ env.CONTEXT }}/gradle
           key: ${{ env.KEY }}

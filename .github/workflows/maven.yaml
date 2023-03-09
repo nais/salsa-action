@@ -30,5 +30,5 @@ jobs:
         with:
           ecosystem: 'maven'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
-          workdir: ${{ env.CONTEXT }}/maven
+          context: ${{ env.CONTEXT }}/maven
           key: ${{ env.KEY }}

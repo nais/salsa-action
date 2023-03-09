@@ -27,5 +27,5 @@ jobs:
         with:
           ecosystem: 'node:npm'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
-          workdir: ${{ env.CONTEXT }}/npm
+          context: ${{ env.CONTEXT }}/npm
           key: ${{ env.KEY }}
