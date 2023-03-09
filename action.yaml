@@ -22,6 +22,7 @@ inputs:
       current working directory for sbom generation, defaults to root of the repository
       useful in mono-repos or when the build file is not in the root of the repository
     required: false
+    default: '.'
   key:
     description: |-
       path to the private key file or KMS URI
