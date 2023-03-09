@@ -3,14 +3,14 @@ description: 'Generate, sign and upload SBOM'
 inputs:
   ecosystem:
     description: |-
-      Description of the ecosystem to use, accepted values are go, gradle and maven.
+      description of the ecosystem to use, accepted values are go, gradle and maven.
       For node, use node:npm and for python use python:poetry etc.
       Maven and Gradle only supports wrappers. 
       If the application is depending on private repositories, please see 'bring your own sbom' alias 'byosbom'
     required: true
   image:
     description: |-
-      Image to sign and upload attestation, must be in the form of <image>:<tag>@<digest>
+      image to sign and upload attestation, must be in the form of <image>:<tag>@<digest>
     required: true
   maindir:
     description: |-
@@ -35,14 +35,27 @@ inputs:
     default: ''
   byosbom:
     description: |-
-      Bring your own SBOM, use existing SBOM file instead of generating one, must be a json file and 
-      accepted formats are CycloneDX. If the file is not in the root of the repository, please see 'context'
+      bring your own SBOM, use existing SBOM file instead of generating one, must be a json file and 
+      default format is CycloneDX, see: https://github.com/sigstore/cosign/blob/main/doc/cosign_attest.md for more info
+      If the file is not in the root of the repository, please see 'context'
     required: false
   sbom:
     description: |-
       filename of the SBOM file, defaults to sbom.json
     required: false
-    default: 'sbom.json'
+    default: 'bom.json'
+  type:
+    description: |-
+      type of the SBOM file, defaults to cyclonedx
+    required: false
+    default: 'cyclonedx'
+  identity-token:
+    description: |-
+      identity token to use for certificate from fulcio, preffered format is path to a file containing the token.
+      useful for pre-generated tokens when using a workload identity provider.
+    required: false
+    default: ''
+
 runs:
   using: composite
   steps:
@@ -51,7 +64,7 @@ runs:
       run: echo SBOM=${{ inputs.sbom }} >> $GITHUB_ENV
       shell: bash
 
-    - name: Change directory to current context
+    - name: Set current context
       run: |
         echo CONTEXT=${{ inputs.context }} >> $GITHUB_ENV
       shell: bash
@@ -91,18 +104,29 @@ runs:
       shell: bash
       run: |
         cd $CONTEXT
-        ./mvnw org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom
-        echo "SBOM=target/${{ env.SBOM }}" >> $GITHUB_ENV
-        echo "Generated Maven ${{ env.SBOM }}"
+        if [[ ! -f mvnw ]]; then
+          echo "maven wrapper not found, please add it to the repository"
+          exit 1
+        fi
+        
+        ./mvnw org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom -DoutputFormat=json -DoutputName=bom && \
+        echo "SBOM=target/${{ env.SBOM }}" >> $GITHUB_ENV && echo "Generated Maven ${{ env.SBOM }}" \
+        || echo "cyclonedx-maven-plugin not found, please add it to the repository"
+
 
     - name: Gradle cycloneDX sbom
       if: ${{ inputs.byosbom == '' && inputs.ecosystem == 'gradle' }}
       shell: bash
       run: |
-        cd $CONTEXT
-        ./gradlew cyclonedxBom
-        echo "SBOM=build/reports/${{ env.SBOM }}" >> $GITHUB_ENV
-        echo "Generated Gradle ${{ env.SBOM }}"
+        cd $CONTEXT      
+        if [[ ! -f gradlew ]]; then
+          echo "gradle wrapper not found, please add it to the repository"
+          exit 1
+        fi
+        
+        ./gradlew cyclonedxBom && \
+        echo "SBOM=build/reports/${{ env.SBOM }}" >> $GITHUB_ENV && echo "Generated Gradle ${{ env.SBOM }}" \
+        || echo "cyclonedx-gradle-plugin not found, please add it to the repository"
 
     - name: Npm CycloneDX sbom
       if: ${{ inputs.byosbom == '' && contains(inputs.ecosystem, 'node') }}
@@ -169,7 +193,7 @@ runs:
         echo "Using SBOM ${{ env.SBOM }}"
         echo "Signing SBOM for ${{ env.IMAGE }}"
         if [[ inputs.key != '' ]]; then
-          cosign attest --tlog-upload=false --predicate ${{ env.CONTEXT }}/${{ env.SBOM }} --type cyclonedx --key ${{ inputs.key }} ${{ env.IMAGE }}
+          cosign attest --tlog-upload=false --predicate ${{ env.CONTEXT }}/${{ env.SBOM }} --type ${{ inputs.type }} --key ${{ inputs.key }} ${{ env.IMAGE }}
         else
           # TODO --identity-token flag used for pre-generated tokens (etc. GKE workload identity, EXPERIMENTAL)
           # TODO --oidc-client-id, --oidc-client-secret, --oidc-issuer (flags used for GITHUB_TOKEN, EXPERIMENTAL)

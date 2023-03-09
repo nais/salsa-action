@@ -4,11 +4,6 @@
 
 ## Eco-system
 
-CycloneDX is a lightweight software bill-of-materials (SBOM) standard designed for use in application security contexts
-and supply chain component analysis.
-
-`byosbom` is where you can specify a generated bom file.
-
 ### go
 
 There are no pre-requisites for this ecosystem.
@@ -16,6 +11,8 @@ There are no pre-requisites for this ecosystem.
 ### jvm
 
 #### gradle
+
+Project must use gradle wrapper for the action to work.
 
 `$cyclonedxVersion` = [CycloneDX Gradle Releases](https://github.com/CycloneDX/cyclonedx-gradle-plugin/releases/)
 
@@ -27,9 +24,11 @@ plugins {
 }
 ```
 
-Project most use gradle wrapper for the action to work.
+For more information, see the [CycloneDX Gradle Plugin](https://github.com/CycloneDX/cyclonedx-gradle-plugin) project.
 
 #### maven
+
+Project must use maven wrapper for the action to work.
 
 `$cyclonedxVersion` [CycloneDX Maven Releases](https://github.com/CycloneDX/cyclonedx-maven-plugin/releases)
 
@@ -43,8 +42,6 @@ Add plugin to your `pom.xml` file:
     <version>${cyclonedxVersion}</version>
 </plugin>
 ```
-
-Project most use maven wrapper for the action to work.
 
 For more information, see the [CycloneDX Maven Plugin](https://github.com/CycloneDX/cyclonedx-maven-plugin) project.
 
@@ -62,3 +59,6 @@ Not supported yet.
 
 There are no pre-requisites for this ecosystem.
 
+## Configuration
+
+For more information, see [action.yaml](action.yaml).
