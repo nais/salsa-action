@@ -28,7 +28,7 @@ inputs:
     description: |-
       path to the private key file or KMS URI
     required: false
-    default: 'cosign.key'
+    default: ''
   password:
     description: |-
       password for the private key file
@@ -50,17 +50,14 @@ inputs:
       type of the SBOM file, defaults to cyclonedx
     required: false
     default: 'cyclonedx'
-  identity-token:
+  workload-identity-provider:
     description: |-
-      identity token to use for certificate from fulcio, preffered format is path to a file containing the token.
-      useful for pre-generated tokens when using a workload identity provider.
+      The workload identity provider for google service account impersonation
     required: false
-    default: ''
-  container-sbom:
+  google-service-account:
     description: |-
-      add a container sbom to the attestation
+      Name of google service account to impersonate
     required: false
-    default: ''
 
 runs:
   using: composite
@@ -181,7 +178,7 @@ runs:
         echo "SBOM=${{ inputs.byosbom }}" >> $GITHUB_ENV
         echo "Using BYOSBOM ${{ env.SBOM }}"
       shell: bash
-
+    
     - name: Install Cosign
       uses: sigstore/cosign-installer@main
       with:
@@ -194,18 +191,45 @@ runs:
     #    echo "Installed cosign"
     #  shell: bash
 
+    - name: Ensure keyless signing is enabled
+      if: ${{ inputs.key == '' }}
+      run: |
+        if [[ ${{ inputs.workload-identity-provider }} == '' ]]; then
+          echo "workload-identity-provider is required for keyless signing"
+          exit 1
+        fi
+        
+        if [[ ${{ inputs.google-service-account }} == '' ]]; then
+          echo "google-service-account is required for keyless signing"
+          exit 1
+        fi
+        echo "Keyless signing enabled"
+      shell: bash
+
+    - name: Authenticate to Google Cloud
+      if: ${{ inputs.key == '' }}
+      uses: google-github-actions/auth@v1.0.0
+      id: google
+      with:
+        workload_identity_provider: ${{ inputs.workload-identity-provider }}
+        service_account: ${{ inputs.google-service-account }}
+        token_format: "id_token"
+        id_token_audience: sigstore
+        id_token_include_email: true
+
+    - name: Cosign keyless attest and upload to OCI registry
+      if: ${{ inputs.key == '' }}
+      run: |
+        cosign attest --yes  --predicate ${{ env.CONTEXT }}/${{ env.SBOM }} --type cyclonedx ${{ env.IMAGE }}
+        echo "keyless signing finished"
+      shell: bash
+
     - name: Cosign attest and upload to OCI registry
+      if: ${{ inputs.key != '' }}
       run: |
         echo "Using SBOM ${{ env.SBOM }}"
         echo "Signing SBOM for ${{ env.IMAGE }}"
-        if [[ inputs.key != '' ]]; then
-          cosign attest --tlog-upload=false --predicate ${{ env.CONTEXT }}/${{ env.SBOM }} --type ${{ inputs.type }} --key ${{ inputs.key }} ${{ env.IMAGE }}
-        else
-          # TODO --identity-token flag used for pre-generated tokens (etc. GKE workload identity, EXPERIMENTAL)
-          # TODO --oidc-client-id, --oidc-client-secret, --oidc-issuer (flags used for GITHUB_TOKEN, EXPERIMENTAL)
-           echo "keyless signing dry-run"
-          # cosign attest --predicate ${{ env.CONTEXT }}/${{ env.SBOM }} --type cyclonedx ${{ env.IMAGE }}
-        fi
+        cosign attest --tlog-upload=false --predicate ${{ env.CONTEXT }}/${{ env.SBOM }} --type ${{ inputs.type }} --key ${{ inputs.key }} ${{ env.IMAGE }}
         echo "Attestation finished"
       shell: bash
       env:

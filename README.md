@@ -63,7 +63,7 @@ There are no pre-requisites for this ecosystem.
 
 For more information, see [action.yaml](action.yaml).
 
-# TDOD
+# TODO
 
 * Keyless signing
 * Sign container image 
