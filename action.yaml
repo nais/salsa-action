@@ -4,9 +4,10 @@ inputs:
   ecosystem:
     description: |-
       description of the ecosystem to use, accepted values are go, gradle and maven.
-      For node, use node:npm and for python use python:poetry etc.
-      Maven and Gradle only supports wrappers. 
-      If the application is depending on private repositories, please see 'bring your own sbom' alias 'byosbom'
+      several of ecosystems have different type of build systems, specify key=value,
+      for node e.g. node=npm and for python e.g. python=poetry etc.
+      maven and Gradle only supports wrappers. 
+      ff the application is depending on private repositories, please see 'bring your own sbom' alias 'byosbom'
     required: true
   image:
     description: |-
@@ -53,6 +54,11 @@ inputs:
     description: |-
       identity token to use for certificate from fulcio, preffered format is path to a file containing the token.
       useful for pre-generated tokens when using a workload identity provider.
+    required: false
+    default: ''
+  container-sbom:
+    description: |-
+      add a container sbom to the attestation
     required: false
     default: ''
 
@@ -133,7 +139,7 @@ runs:
       shell: bash
       run: |
         ecosystem="${{ inputs.ecosystem }}"
-        build_type="${ecosystem##*:}"
+        build_type="${ecosystem##*=}"
         if [[ "$build_type" == '' ||  "$build_type" != 'npm' ]]; then
           echo "a project build type is required for node ecosystem"
           echo "accepted values are npm"
@@ -150,7 +156,7 @@ runs:
       run: |
         # greedy front trim matches everything up to and including the last colon
         ecosystem="${{ inputs.ecosystem }}"
-        build_type="${ecosystem##*:}"
+        build_type="${ecosystem##*=}"
         if [[ "$build_type" == '' ||  "$build_type" != 'poetry' && "$build_type" != 'pip' && "$build_type" != 'conda-json' && "$build_type" != 'requirements' ]]; then
           echo "a project build type is required for python ecosystem"
           echo "accepted values are pip, poetry, conda-json and requirements"
@@ -180,7 +186,7 @@ runs:
       uses: sigstore/cosign-installer@main
       with:
         cosign-release: 'v2.0.0'
-
+    
     #- name: Install Cosign
     #  run: |
     #    curl https://github.com/sigstore/cosign/releases/download/v2.0.0/cosign-linux-arm -Lo /usr/local/bin/cosign
@@ -198,7 +204,7 @@ runs:
           # TODO --identity-token flag used for pre-generated tokens (etc. GKE workload identity, EXPERIMENTAL)
           # TODO --oidc-client-id, --oidc-client-secret, --oidc-issuer (flags used for GITHUB_TOKEN, EXPERIMENTAL)
            echo "keyless signing dry-run"
-          # cosign attest --tlog-upload=false --predicate ${{ env.CONTEXT }}/${{ env.SBOM }} --type cyclonedx ${{ env.IMAGE }}
+          # cosign attest --predicate ${{ env.CONTEXT }}/${{ env.SBOM }} --type cyclonedx ${{ env.IMAGE }}
         fi
         echo "Attestation finished"
       shell: bash

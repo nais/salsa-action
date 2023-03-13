@@ -62,3 +62,10 @@ There are no pre-requisites for this ecosystem.
 ## Configuration
 
 For more information, see [action.yaml](action.yaml).
+
+# TDOD
+
+* Keyless signing
+* Sign container image 
+  * attest container sbom to container image
+* Support for other ecosystems

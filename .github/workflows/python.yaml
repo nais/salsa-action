@@ -26,7 +26,7 @@ jobs:
       - name: Generate, sign and upload SBOM
         uses: ./
         with:
-          ecosystem: 'python:poetry'
+          ecosystem: 'python=poetry'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
           context: ${{ env.CONTEXT }}
           key: ${{ env.KEY }}
