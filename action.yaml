@@ -58,6 +58,11 @@ inputs:
     description: |-
       Name of google service account to impersonate
     required: false
+  oidc-provider:
+    description: |-
+      The OIDC provider for google service account impersonation
+    required: false
+    default: 'google'
 
 runs:
   using: composite
@@ -220,7 +225,7 @@ runs:
     - name: Cosign keyless attest and upload to OCI registry
       if: ${{ inputs.key == '' }}
       run: |
-        cosign attest --yes  --predicate ${{ env.CONTEXT }}/${{ env.SBOM }} --type cyclonedx ${{ env.IMAGE }}
+        cosign attest --yes --oidc-provider ${{ inputs.oidc-provider }} --predicate ${{ env.CONTEXT }}/${{ env.SBOM }} --type cyclonedx ${{ env.IMAGE }}
         echo "keyless signing finished"
       shell: bash
 
