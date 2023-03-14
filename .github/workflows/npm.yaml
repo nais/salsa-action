@@ -8,7 +8,6 @@ env:
 
 jobs:
   build-npm:
-    name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

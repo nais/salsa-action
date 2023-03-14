@@ -62,7 +62,7 @@ inputs:
     description: |-
       The OIDC provider for google service account impersonation
     required: false
-    default: 'google'
+    default: 'Google'
 
 runs:
   using: composite
@@ -77,13 +77,19 @@ runs:
         echo CONTEXT=${{ inputs.context }} >> $GITHUB_ENV
       shell: bash
 
+    - name: Set eccosystem
+      if: ${{ inputs.ecosystem != '' }}
+      run: |
+        echo ECOSYSTEM=${{ inputs.ecosystem }} >> $GITHUB_ENV
+      shell: bash
+
     - name: Identify ecosystem
       if: ${{ inputs.ecosystem == '' }}
       run: |
         result="$(find ${{ env.CONTEXT }} -type f -name 'go.mod')"
         echo $result
         if [[ "$(find ${{ env.CONTEXT }} -type f -name 'package-lock.json')" ]]; then
-         echo ECOSYSTEM=node=npm >> $GITHUB_ENV
+         echo ECOSYSTEM="node=npm" >> $GITHUB_ENV
         elif [[ "$(find ${{ env.CONTEXT }} -type f -name 'build.gradle*')" ]]; then
          echo ECOSYSTEM=gradle >> $GITHUB_ENV
         elif [[ "$(find ${{ env.CONTEXT }} -type f -name 'pom.xml')" ]]; then
@@ -91,11 +97,11 @@ runs:
         elif [[ "$(find ${{ env.CONTEXT }} -type f -name 'go.mod')" ]]; then
          echo ECOSYSTEM=go >> $GITHUB_ENV
         elif [[ "$(find ${{ env.CONTEXT }} -type f -name 'poetry.lock')" ]]; then
-         echo ECOSYSTEM=python=poetry >> $GITHUB_ENV
+         echo ECOSYSTEM="python=poetry" >> $GITHUB_ENV
         elif [[ "$(find ${{ env.CONTEXT }} -type f -name 'Pipfile.lock')" ]]; then
-         echo ECOSYSTEM=python=pip >> $GITHUB_ENV
+         echo ECOSYSTEM="python=pip" >> $GITHUB_ENV
         elif [[ "$(find ${{ env.CONTEXT }} -type f -name 'requirements.txt')" ]]; then
-          echo ECOSYSTEM=python=pip >> $GITHUB_ENV
+          echo ECOSYSTEM="python=pip" >> $GITHUB_ENV
          return
         else
          echo "No supported build file found"
@@ -215,7 +221,7 @@ runs:
       with:
         cosign-release: 'v2.0.0'
     
-    #    - name: Install Cosign
+    #- name: Install Cosign
     #  run: |
     #    curl https://github.com/sigstore/cosign/releases/download/v2.0.0/cosign-linux-arm -Lo /usr/local/bin/cosign
     #    chmod +x /usr/local/bin/cosign

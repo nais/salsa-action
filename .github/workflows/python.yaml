@@ -8,7 +8,6 @@ env:
 
 jobs:
   build-python:
-    name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -26,7 +25,6 @@ jobs:
       - name: Generate, sign and upload SBOM
         uses: ./
         with:
-          ecosystem: 'python=poetry'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
           context: ${{ env.CONTEXT }}
           key: ${{ env.KEY }}
