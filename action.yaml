@@ -243,17 +243,16 @@ runs:
         echo "Keyless signing enabled"
       shell: bash
 
-   # - name: Authenticate to Google Cloud
-   #   if: ${{ inputs.key == '' }}
-   #   uses: google-github-actions/auth@v1.0.0
-   #   id: google
-   #   with:
-   #     workload_identity_provider: ${{ inputs.workload-identity-provider }}
-   #     service_account: ${{ inputs.google-service-account }}
-   #     token_format: "id_token"
-   #     id_token_audience: sigstore
-   #     id_token_include_email: true
-    
+    - name: Authenticate to Google Cloud
+      if: ${{ inputs.key == '' }}
+      uses: google-github-actions/auth@v1.0.0
+      id: google
+      with:
+        workload_identity_provider: ${{ inputs.workload-identity-provider }}
+        service_account: ${{ inputs.google-service-account }}
+        token_format: "id_token"
+        id_token_audience: sigstore
+        id_token_include_email: true
 
     - name: Cosign keyless attest and upload to OCI registry
       if: ${{ inputs.key == '' }}
