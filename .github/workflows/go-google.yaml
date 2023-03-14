@@ -26,7 +26,6 @@ jobs:
       - name: Generate, sign and upload SBOM
         uses: ./
         with:
-          ecosystem: 'go'
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
           context: ${{ env.CONTEXT }}
           workload-identity-provider: ${{ secrets.SLSA_WORKLOAD_IDENTITY_PROVIDER }}
