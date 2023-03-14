@@ -3,11 +3,10 @@ description: 'Generate, sign and upload SBOM'
 inputs:
   ecosystem:
     description: |-
-      description of the ecosystem to use, accepted values are go, gradle and maven.
-      several of ecosystems have different type of build systems, specify key=value,
-      for node e.g. node=npm and for python e.g. python=poetry etc.
-      maven and Gradle only supports wrappers. 
-      ff the application is depending on private repositories, please see 'bring your own sbom' alias 'byosbom'
+      (Optional) action finds the actual build file in the repository but you can also specify a ecosystem to generate 
+      sbom from. Several of ecosystems have different type of build systems, then specify key=value,
+      for node e.g. node=npm and for python e.g. python=poetry etc. maven and gradle only supports wrappers. 
+      If the application is depending on private repositories, please see 'bring your own sbom' alias 'byosbom'
     required: false
   image:
     description: |-
@@ -36,13 +35,13 @@ inputs:
     default: ''
   byosbom:
     description: |-
-      bring your own SBOM, use existing SBOM file instead of generating one, must be a json file and 
-      default format is CycloneDX, see: https://github.com/sigstore/cosign/blob/main/doc/cosign_attest.md for more info
+      bring your own SBOM, use existing SBOM file instead of auto generating, must be a json file and 
+      default format is CycloneDX, see: https://github.com/sigstore/cosign/blob/main/doc/cosign_attest.md for more info.
       If the file is not in the root of the repository, please see 'context'
     required: false
   sbom:
     description: |-
-      filename of the SBOM file, defaults to sbom.json
+      filename of the SBOM file, defaults to bom.json
     required: false
     default: 'bom.json'
   type:
@@ -58,11 +57,7 @@ inputs:
     description: |-
       Name of google service account to impersonate
     required: false
-  oidc-provider:
-    description: |-
-      The OIDC provider for google service account impersonation
-    required: false
-    default: 'google-impersonate'
+    default: ''
 
 runs:
   using: composite
@@ -102,10 +97,9 @@ runs:
          echo ECOSYSTEM="python=pip" >> $GITHUB_ENV
         elif [[ "$(find ${{ env.CONTEXT }} -type f -name 'requirements.txt')" ]]; then
           echo ECOSYSTEM="python=pip" >> $GITHUB_ENV
-         return
         else
-         echo "No supported build file found"
-         exit 1
+         echo "No supported build file found in the repository"
+         echo "Action will try to generate sbom from the image with trivy"
         fi
       shell: bash
 
@@ -118,23 +112,32 @@ runs:
         echo IMAGE=${{ inputs.image }} >> $GITHUB_ENV
       shell: bash
 
+    - name: Use trivy to generate sbom
+      if: ${{ inputs.byosbom == '' && inputs.ecosystem == '' }}
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: "image"
+        format: "cyclonedx"
+        output: "${{ inputs.sbom }}"
+        image-ref: "${{ env.IMAGE }}"
+
+    - name: Export trivy sbom
+      if: ${{ inputs.byosbom == '' && inputs.ecosystem == '' }}
+      run: echo SBOM=${{ inputs.sbom }} >> $GITHUB_ENV
+      shell: bash
+
     - name: Install Go
-      if: ${{ inputs.byosbom == '' && env.ECOSYSTEM == 'go' }}
+      if: ${{ env.ECOSYSTEM == 'go' }}
       uses: actions/setup-go@v3
       with:
         go-version: '1.20.1'
 
-    - name: Install cyclonedx-gomod
+    - name: Install cyclonedx-gomod and generate sbom
       if: ${{ inputs.byosbom == '' && env.ECOSYSTEM == 'go' }}
       shell: bash
       run: |
         go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
         echo "Installed cyclonedx-gomod"
-
-    - name: Go CycloneDX sbom
-      if: ${{ inputs.byosbom == '' && env.ECOSYSTEM == 'go' }}
-      shell: bash
-      run: |
         cd $CONTEXT
         cyclonedx-gomod app -output ./${{ env.SBOM }} -main ${{ inputs.maindir }} -json=true
         echo "Generated Go ${{ env.SBOM }}"
@@ -215,36 +218,21 @@ runs:
         echo "SBOM=${{ inputs.byosbom }}" >> $GITHUB_ENV
         echo "Using BYOSBOM ${{ env.SBOM }}"
       shell: bash
-
-    - name: Install Cosign
-      uses: sigstore/cosign-installer@main
-      with:
-        cosign-release: 'v2.0.0'
-    
+    #
     #- name: Install Cosign
-    #  run: |
-    #    curl https://github.com/sigstore/cosign/releases/download/v2.0.0/cosign-linux-arm -Lo /usr/local/bin/cosign
-    #    chmod +x /usr/local/bin/cosign
-    #    echo "Installed cosign"
-    #  shell: bash
-
-    - name: Ensure keyless signing is enabled
-      if: ${{ inputs.key == '' }}
+    #  uses: sigstore/cosign-installer@main
+    #  with:
+    #    cosign-release: 'v2.0.0'
+    #
+    - name: Install Cosign
       run: |
-        if [[ ${{ inputs.workload-identity-provider }} == '' ]]; then
-          echo "workload-identity-provider is required for keyless signing"
-          exit 1
-        fi
-        
-        if [[ ${{ inputs.google-service-account }} == '' ]]; then
-          echo "google-service-account is required for keyless signing"
-          exit 1
-        fi
-        echo "Keyless signing enabled"
+        curl https://github.com/sigstore/cosign/releases/download/v2.0.0/cosign-linux-arm -Lo /usr/local/bin/cosign
+        chmod +x /usr/local/bin/cosign
+        echo "Installed cosign"
       shell: bash
 
     - name: Authenticate to Google Cloud
-      if: ${{ inputs.key == '' }}
+      if: ${{ inputs.key == '' && inputs.google-service-account != '' }}
       uses: google-github-actions/auth@v1.0.0
       id: google
       with:
@@ -254,22 +242,36 @@ runs:
         id_token_audience: sigstore
         id_token_include_email: true
 
+    - name: Determine cosign google oidc provider
+      if: ${{ inputs.key == '' && inputs.google-service-account != ''}}
+      run: echo "COSIGN_OIDC_PROVIDER=google-impersonate" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Determine cosign github oidc provider
+      if: ${{ inputs.key == '' && inputs.google-service-account == ''}}
+      run: echo "COSIGN_OIDC_PROVIDER=github-actions" >> $GITHUB_ENV
+      shell: bash
+
     - name: Cosign keyless attest and upload to OCI registry
       if: ${{ inputs.key == '' }}
       run: |
-        cosign attest --yes --oidc-provider ${{ inputs.oidc-provider }} --predicate ${{ env.CONTEXT }}/${{ env.SBOM }} --type cyclonedx ${{ env.IMAGE }}
+        cosign attest --yes --oidc-provider ${{ env.COSIGN_OIDC_PROVIDER }} --predicate ${{ env.SBOM_PATH }} --type ${{ env.PREDICATE_TYPE }} ${{ env.IMAGE }}
         echo "keyless signing finished"
       shell: bash
       env:
         GOOGLE_SERVICE_ACCOUNT_NAME: ${{ inputs.google-service-account }}
+        SBOM_PATH: ${{ env.CONTEXT }}/${{ env.SBOM }}
+        PREDICATE_TYPE: ${{ inputs.type }}
 
     - name: Cosign attest and upload to OCI registry
       if: ${{ inputs.key != '' }}
       run: |
         echo "Using SBOM ${{ env.SBOM }}"
         echo "Signing SBOM for ${{ env.IMAGE }}"
-        cosign attest --tlog-upload=false --predicate ${{ env.CONTEXT }}/${{ env.SBOM }} --type ${{ inputs.type }} --key ${{ inputs.key }} ${{ env.IMAGE }}
+        cosign attest --tlog-upload=false --predicate ${{ env.SBOM_PATH }} --type ${{ env.PREDICATE_TYPE }} --key ${{ inputs.key }} ${{ env.IMAGE }}
         echo "Attestation finished"
       shell: bash
       env:
         COSIGN_PASSWORD: ${{ inputs.password }}
+        SBOM_PATH: ${{ env.CONTEXT }}/${{ env.SBOM }}
+        PREDICATE_TYPE: ${{ inputs.type }}

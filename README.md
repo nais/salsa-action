@@ -2,11 +2,17 @@
 
 🚧 🏗️ this project is an ealy development stage 🏗️ 🚧
 
-## Eco-system
+## Ecosystems
+
+An ecosystem describes the tooling used to build a project. The following ecosystems are supported to generate a
+Software Bill of Materials (SBOM):
+
+Project is not required to use any of the tools listed below. The action will attempt to generate an SBOM using the
+trivy scanner for a project not requiring any of the tools listed below.
 
 ### go
 
-There are no pre-requisites for this ecosystem.
+There are no pre-requisites for this ecosystem other than the project must be a go module.
 
 ### jvm
 
@@ -16,13 +22,15 @@ Project must use gradle wrapper for the action to work.
 
 `$cyclonedxVersion` = [CycloneDX Gradle Releases](https://github.com/CycloneDX/cyclonedx-gradle-plugin/releases/)
 
-Add plugin to your `build.gradle` file:
+Add plugin to your `build.gradle` or `build.gradle.kts` file:
 
 ```groovy
 plugins {
     id("org.cyclonedx.bom") version $cyclonedxVersion
 }
 ```
+
+No further configuration is required.
 
 For more information, see the [CycloneDX Gradle Plugin](https://github.com/CycloneDX/cyclonedx-gradle-plugin) project.
 
@@ -43,13 +51,15 @@ Add plugin to your `pom.xml` file:
 </plugin>
 ```
 
+No further configuration is required.
+
 For more information, see the [CycloneDX Maven Plugin](https://github.com/CycloneDX/cyclonedx-maven-plugin) project.
 
 ### Node
 
 #### npm
 
-There are no pre-requisites for this ecosystem.
+There are no pre-requisites for this ecosystem other than the project must be a npm module.
 
 #### yarn
 
@@ -57,15 +67,14 @@ Not supported yet.
 
 ### python
 
-There are no pre-requisites for this ecosystem.
+There are no pre-requisites for this ecosystem other than the project must be a python module.
 
 ## Configuration
 
 For more information, see [action.yaml](action.yaml).
 
-# TODO
+# To Explore
 
-* Keyless signing
-* Sign container image 
-  * attest container sbom to container image
+* Sign container image
+    * attest container sbom to container image
 * Support for other ecosystems
