@@ -26,4 +26,4 @@ jobs:
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
           context: ${{ env.CONTEXT }}
           key: ${{ secrets.SALSA_KMS_KEY }}
-          kms_credentials: ${{ secrets.SALSA_CREDENTIALS }}
+          kms-credentials: ${{ secrets.SALSA_CREDENTIALS }}
