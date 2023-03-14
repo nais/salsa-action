@@ -62,7 +62,7 @@ inputs:
     description: |-
       The OIDC provider for google service account impersonation
     required: false
-    default: 'Google'
+    default: 'google-impersonate'
 
 runs:
   using: composite
@@ -243,16 +243,17 @@ runs:
         echo "Keyless signing enabled"
       shell: bash
 
-    - name: Authenticate to Google Cloud
-      if: ${{ inputs.key == '' }}
-      uses: google-github-actions/auth@v1.0.0
-      id: google
-      with:
-        workload_identity_provider: ${{ inputs.workload-identity-provider }}
-        service_account: ${{ inputs.google-service-account }}
-        token_format: "id_token"
-        id_token_audience: sigstore
-        id_token_include_email: true
+   # - name: Authenticate to Google Cloud
+   #   if: ${{ inputs.key == '' }}
+   #   uses: google-github-actions/auth@v1.0.0
+   #   id: google
+   #   with:
+   #     workload_identity_provider: ${{ inputs.workload-identity-provider }}
+   #     service_account: ${{ inputs.google-service-account }}
+   #     token_format: "id_token"
+   #     id_token_audience: sigstore
+   #     id_token_include_email: true
+    
 
     - name: Cosign keyless attest and upload to OCI registry
       if: ${{ inputs.key == '' }}
@@ -260,6 +261,8 @@ runs:
         cosign attest --yes --oidc-provider ${{ inputs.oidc-provider }} --predicate ${{ env.CONTEXT }}/${{ env.SBOM }} --type cyclonedx ${{ env.IMAGE }}
         echo "keyless signing finished"
       shell: bash
+      env:
+        GOOGLE_SERVICE_ACCOUNT_NAME: ${{ inputs.google-service-account }}
 
     - name: Cosign attest and upload to OCI registry
       if: ${{ inputs.key != '' }}
