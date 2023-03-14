@@ -1,10 +1,9 @@
-name: Go Salsa Action
+name: Go KMS Salsa Action
 on: [ push ]
 
 env:
   IMAGE: ttl.sh/salsa/gokmstestapp:1h
   CONTEXT: ci/golang
-  KEY: ci/cosign.key
 
 jobs:
   build-go-kms:
