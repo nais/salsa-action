@@ -58,6 +58,10 @@ inputs:
       Name of google service account to impersonate
     required: false
     default: ''
+  kms-credentials:
+    description: |-
+      The credentials for the KMS key
+    required: false
 
 runs:
   using: composite
@@ -242,6 +246,13 @@ runs:
         id_token_audience: sigstore
         id_token_include_email: true
 
+    - name: Authenticate to Google Cloud
+      if: ${{ inputs.key != '' && inputs.kms-credentials != '' }}
+      uses: google-github-actions/auth@v1.0.0
+      id: google
+      with:
+        credentials_json: ${{ inputs.kms-credentials }}
+
     - name: Determine cosign google oidc provider
       if: ${{ inputs.key == '' && inputs.google-service-account != ''}}
       run: echo "COSIGN_OIDC_PROVIDER=google-impersonate" >> $GITHUB_ENV
@@ -252,14 +263,24 @@ runs:
       run: echo "COSIGN_OIDC_PROVIDER=github-actions" >> $GITHUB_ENV
       shell: bash
 
-    - name: Cosign keyless attest and upload to OCI registry
-      if: ${{ inputs.key == '' }}
+    - name: Cosign keyless Google attest and upload to OCI registry
+      if: ${{ inputs.key == '' && env.COSIGN_OIDC_PROVIDER == 'google-impersonate' }}
       run: |
         cosign attest --yes --oidc-provider ${{ env.COSIGN_OIDC_PROVIDER }} --predicate ${{ env.SBOM_PATH }} --type ${{ env.PREDICATE_TYPE }} ${{ env.IMAGE }}
-        echo "keyless signing finished"
+        echo "keyless $env.COSIGN_OIDC_PROVIDER attestation finished"
       shell: bash
       env:
         GOOGLE_SERVICE_ACCOUNT_NAME: ${{ inputs.google-service-account }}
+        SBOM_PATH: ${{ env.CONTEXT }}/${{ env.SBOM }}
+        PREDICATE_TYPE: ${{ inputs.type }}
+
+    - name: Cosign keyless Github attest and upload to OCI registry
+      if: ${{ inputs.key == '' && env.COSIGN_OIDC_PROVIDER == 'github-actions' }}
+      run: |
+        cosign attest --yes --predicate ${{ env.SBOM_PATH }} --type ${{ env.PREDICATE_TYPE }} ${{ env.IMAGE }}
+        echo "keyless $env.COSIGN_OIDC_PROVIDER attestation finished"
+      shell: bash
+      env:
         SBOM_PATH: ${{ env.CONTEXT }}/${{ env.SBOM }}
         PREDICATE_TYPE: ${{ inputs.type }}
 

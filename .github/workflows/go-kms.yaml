@@ -1,0 +1,29 @@
+name: Go Salsa Action
+on: [ push ]
+
+env:
+  IMAGE: ttl.sh/salsa/gokmstestapp:1h
+  CONTEXT: ci/golang
+  KEY: ci/cosign.key
+
+jobs:
+  build-go-kms:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          tags: ${{ env.IMAGE }}
+          context: ./${{ env.CONTEXT }}
+
+      - name: Generate, sign and upload SBOM
+        uses: ./
+        with:
+          image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
+          context: ${{ env.CONTEXT }}
+          key: ${{ secrets.SALSA_KMS_KEY }}
+          kms_credentials: ${{ secrets.SALSA_CREDENTIALS }}
