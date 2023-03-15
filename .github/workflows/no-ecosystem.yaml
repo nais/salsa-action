@@ -24,3 +24,5 @@ jobs:
         with:
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
           context: ${{ env.CONTEXT }}
+          workload-identity-provider: ${{ secrets.SLSA_WORKLOAD_IDENTITY_PROVIDER }}
+          google-service-account: cosign-keyless@plattformsikkerhet-dev-496e.iam.gserviceaccount.com
