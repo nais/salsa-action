@@ -236,7 +236,7 @@ runs:
     #  shell: bash
 
     - name: Authenticate to Google Cloud
-      if: ${{ inputs.key == '' && inputs.google-service-account != '' }}
+      if: ${{ inputs.key == '' }}
       uses: google-github-actions/auth@v1.0.0
       with:
         workload_identity_provider: ${{ inputs.workload-identity-provider }}
@@ -265,7 +265,7 @@ runs:
       if: ${{ inputs.key == '' && env.OIDC_PROVIDER == 'google-impersonate' }}
       run: |
         cosign attest --yes --oidc-provider ${{ env.OIDC_PROVIDER }} --predicate ${{ env.SBOM_PATH }} --type ${{ env.PREDICATE_TYPE }} ${{ env.IMAGE }}
-        echo "keyless $env.OIDC_PROVIDER attestation finished"
+        echo "keyless ${{ env.OIDC_PROVIDER }} attestation finished"
       shell: bash
       env:
         GOOGLE_SERVICE_ACCOUNT_NAME: ${{ inputs.google-service-account }}
@@ -276,7 +276,7 @@ runs:
       if: ${{ inputs.key == '' && env.OIDC_PROVIDER == 'github-actions' }}
       run: |
         cosign attest --yes --predicate ${{ env.SBOM_PATH }} --type ${{ env.PREDICATE_TYPE }} ${{ env.IMAGE }}
-        echo "keyless $env.OIDC_PROVIDER attestation finished"
+        echo "keyless ${{ env.OIDC_PROVIDER }} attestation finished"
       shell: bash
       env:
         SBOM_PATH: ${{ env.CONTEXT }}/${{ env.SBOM }}

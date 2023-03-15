@@ -4,7 +4,6 @@ on: [ push ]
 env:
   IMAGE: ttl.sh/salsa/gogoogletestapp:1h
   CONTEXT: ci/golang
-  KEY: ci/cosign.key
 
 jobs:
   build-go-google:
