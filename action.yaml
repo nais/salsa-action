@@ -122,7 +122,7 @@ runs:
       with:
         scan-type: "image"
         format: "cyclonedx"
-        output: "${{ inputs.sbom }}"
+        output: "${{ env.CONTEXT }}/${{ inputs.sbom }}"
         image-ref: "${{ env.IMAGE }}"
 
     - name: Export trivy sbom
