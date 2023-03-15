@@ -53,6 +53,28 @@ Not supported yet.
 
 There are no pre-requisites for this ecosystem.
 
+## Attestation
+
+### Keys
+
+* KMS: [go-kms.yaml](.github/workflows/go-kms.yaml)
+* cosign.key: [go.yaml](.github/workflows/go.yaml)
+
+### Keyless
+
+* Google: [go-google.yaml](.github/workflows/go-google.yaml)
+* GitHub: [go-github.yaml](.github/workflows/go-github.yaml)
+
+Requires GitHub job permissions to be set.
+
+```yaml
+jobs:
+  build:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+```
+
 ## Configuration
 
 For more information, see [action.yaml](action.yaml).

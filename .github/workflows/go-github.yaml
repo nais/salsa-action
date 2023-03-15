@@ -1,0 +1,29 @@
+name: Go Salsa with ephemeral keyless Google Token Action
+on: [ push ]
+
+env:
+  IMAGE: ttl.sh/salsa/gogithubtestapp:1h
+  CONTEXT: ci/golang
+
+jobs:
+  build-go-github:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          tags: ${{ env.IMAGE }}
+          context: ./${{ env.CONTEXT }}
+
+      - name: Generate, sign and upload SBOM
+        uses: ./
+        with:
+          image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
+          context: ${{ env.CONTEXT }}

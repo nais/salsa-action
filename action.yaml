@@ -226,7 +226,7 @@ runs:
       with:
         cosign-release: 'v2.0.0'
     
-    #- name: Install Cosign
+    #    - name: Install Cosign
     #  run: |
     #    curl https://github.com/sigstore/cosign/releases/download/v2.0.0/cosign-linux-arm -Lo /usr/local/bin/cosign
     #    chmod +x /usr/local/bin/cosign
@@ -292,3 +292,11 @@ runs:
         COSIGN_PASSWORD: ${{ inputs.password }}
         SBOM_PATH: ${{ env.CONTEXT }}/${{ env.SBOM }}
         PREDICATE_TYPE: ${{ inputs.type }}
+
+    - name: Set outputs
+      id: outputs
+      shell: bash
+      run: |
+        echo "sbom=${{ env.SBOM_PATH }}" >> $GITHUB_OUTPUT
+      env:
+        SBOM_PATH: ${{ env.CONTEXT }}/${{ env.SBOM }}
