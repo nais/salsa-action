@@ -4,19 +4,20 @@
 
 ## Ecosystems
 
-An ecosystem describes the tooling used to build a project. The following ecosystems are supported to generate a
-Software Bill of Materials (SBOM):
+An ecosystem describes the tooling used to build a project. The following ecosystems bellow are supported to generate a
+Software Bill of Materials (SBOM).
 
-Project is not required to use any of the tools listed below. The action will attempt to generate an SBOM using the
-trivy scanner for a project not requiring any of the tools listed below.
+Project is not required to use any of the tools listed below.
+The action will attempt to generate an SBOM using the trivy scanner for a project not requiring any of the tools listed
+below.
 
 ### go
 
-There are no pre-requisites for this ecosystem other than the project must be a go module.
+There are no pre-requisites for this ecosystem.
 
 ### jvm
 
-#### gradle
+* gradle
 
 Project must use gradle wrapper for the action to work.
 
@@ -34,40 +35,23 @@ No further configuration is required.
 
 For more information, see the [CycloneDX Gradle Plugin](https://github.com/CycloneDX/cyclonedx-gradle-plugin) project.
 
-#### maven
+* maven
 
 Project must use maven wrapper for the action to work.
 
-`$cyclonedxVersion` [CycloneDX Maven Releases](https://github.com/CycloneDX/cyclonedx-maven-plugin/releases)
-
-Add plugin to your `pom.xml` file:
-
-```xml
-
-<plugin>
-    <groupId>org.cyclonedx</groupId>
-    <artifactId>cyclonedx-maven-plugin</artifactId>
-    <version>${cyclonedxVersion}</version>
-</plugin>
-```
-
-No further configuration is required.
-
-For more information, see the [CycloneDX Maven Plugin](https://github.com/CycloneDX/cyclonedx-maven-plugin) project.
-
 ### Node
 
-#### npm
+* npm
 
-There are no pre-requisites for this ecosystem other than the project must be a npm module.
+There are no pre-requisites for this ecosystem.
 
-#### yarn
+* yarn
 
 Not supported yet.
 
 ### python
 
-There are no pre-requisites for this ecosystem other than the project must be a python module.
+There are no pre-requisites for this ecosystem.
 
 ## Configuration
 

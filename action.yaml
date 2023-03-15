@@ -117,7 +117,7 @@ runs:
       shell: bash
 
     - name: Use trivy to generate sbom
-      if: ${{ inputs.byosbom == '' && inputs.ecosystem == '' }}
+      if: ${{ inputs.byosbom == '' && env.ECOSYSTEM == '' }}
       uses: aquasecurity/trivy-action@master
       with:
         scan-type: "image"
@@ -126,7 +126,7 @@ runs:
         image-ref: "${{ env.IMAGE }}"
 
     - name: Export trivy sbom
-      if: ${{ inputs.byosbom == '' && inputs.ecosystem == '' }}
+      if: ${{ inputs.byosbom == '' && env.ECOSYSTEM == '' }}
       run: echo SBOM=${{ inputs.sbom }} >> $GITHUB_ENV
       shell: bash
 
@@ -156,9 +156,8 @@ runs:
           exit 1
         fi
         
-        ./mvnw org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom -DoutputFormat=json -DoutputName=bom && \
-        echo "SBOM=target/${{ env.SBOM }}" >> $GITHUB_ENV && echo "Generated Maven ${{ env.SBOM }}" \
-        || echo "cyclonedx-maven-plugin not found, please add it to the repository"
+        ./mvnw org.cyclonedx:cyclonedx-maven-plugin:2.7.5:makeAggregateBom -DoutputFormat=json -DoutputName=bom && \
+        echo "SBOM=target/${{ env.SBOM }}" >> $GITHUB_ENV && echo "Generated Maven ${{ env.SBOM }}"
 
 
     - name: Gradle cycloneDX sbom
@@ -172,8 +171,7 @@ runs:
         fi
         
         ./gradlew cyclonedxBom && \
-        echo "SBOM=build/reports/${{ env.SBOM }}" >> $GITHUB_ENV && echo "Generated Gradle ${{ env.SBOM }}" \
-        || echo "cyclonedx-gradle-plugin not found, please add it to the repository"
+        echo "SBOM=build/reports/${{ env.SBOM }}" >> $GITHUB_ENV && echo "Generated Gradle ${{ env.SBOM }}"
 
     - name: Npm CycloneDX sbom
       if: ${{ inputs.byosbom == '' && contains(env.ECOSYSTEM, 'node') }}
@@ -235,8 +233,8 @@ runs:
     #    echo "Installed cosign"
     #  shell: bash
 
-    - name: Authenticate to Google Cloud
-      if: ${{ inputs.key == '' }}
+    - name: Authenticate to Google Cloud with workload identity
+      if: ${{ inputs.key == '' && inputs.google-service-account != '' && inputs.workload-identity-provider != ''}}
       uses: google-github-actions/auth@v1.0.0
       with:
         workload_identity_provider: ${{ inputs.workload-identity-provider }}
@@ -245,7 +243,7 @@ runs:
         id_token_audience: sigstore
         id_token_include_email: true
 
-    - name: Authenticate to Google Cloud
+    - name: Authenticate to Google Cloud with credentials
       if: ${{ inputs.key != '' && inputs.kms-credentials != '' }}
       uses: google-github-actions/auth@v1.0.0
       with:
