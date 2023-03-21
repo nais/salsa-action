@@ -85,8 +85,6 @@ runs:
     - name: Identify ecosystem
       if: ${{ inputs.ecosystem == '' }}
       run: |
-        result="$(find ${{ env.CONTEXT }} -type f -name 'go.mod')"
-        echo $result
         if [[ "$(find ${{ env.CONTEXT }} -type f -name 'package-lock.json')" ]]; then
          echo ECOSYSTEM="node=npm" >> $GITHUB_ENV
         elif [[ "$(find ${{ env.CONTEXT }} -type f -name 'build.gradle*')" ]]; then
@@ -220,18 +218,18 @@ runs:
         echo "SBOM=${{ inputs.byosbom }}" >> $GITHUB_ENV
         echo "Using BYOSBOM ${{ env.SBOM }}"
       shell: bash
-
+        #
+        #- name: Install Cosign
+        #  uses: sigstore/cosign-installer@main
+        #  with:
+        #    cosign-release: 'v2.0.0'
+      #
     - name: Install Cosign
-      uses: sigstore/cosign-installer@main
-      with:
-        cosign-release: 'v2.0.0'
-    
-    #    - name: Install Cosign
-    #  run: |
-    #    curl https://github.com/sigstore/cosign/releases/download/v2.0.0/cosign-linux-arm -Lo /usr/local/bin/cosign
-    #    chmod +x /usr/local/bin/cosign
-    #    echo "Installed cosign"
-    #  shell: bash
+      run: |
+        curl https://github.com/sigstore/cosign/releases/download/v2.0.0/cosign-linux-amd64 -Lo /usr/local/bin/cosign
+        chmod +x /usr/local/bin/cosign
+        echo "Installed cosign"
+      shell: bash
 
     - name: Authenticate to Google Cloud with workload identity
       if: ${{ inputs.key == '' && inputs.google-service-account != '' && inputs.workload-identity-provider != ''}}
@@ -273,11 +271,10 @@ runs:
     - name: Cosign keyless Github attest and upload to OCI registry
       if: ${{ inputs.key == '' && env.OIDC_PROVIDER == 'github-actions' }}
       run: |
-        cosign attest --yes --predicate ${{ env.SBOM_PATH }} --type ${{ env.PREDICATE_TYPE }} ${{ env.IMAGE }}
+        cosign attest --yes --predicate ${{ env.CONTEXT }}/${{ env.SBOM }} --type ${{ env.PREDICATE_TYPE }} ${{ env.IMAGE }}
         echo "keyless ${{ env.OIDC_PROVIDER }} attestation finished"
       shell: bash
       env:
-        SBOM_PATH: ${{ env.CONTEXT }}/${{ env.SBOM }}
         PREDICATE_TYPE: ${{ inputs.type }}
 
     - name: Cosign attest and upload to OCI registry
@@ -285,12 +282,11 @@ runs:
       run: |
         echo "Using SBOM ${{ env.SBOM }}"
         echo "Signing SBOM for ${{ env.IMAGE }}"
-        cosign attest --tlog-upload=false --predicate ${{ env.SBOM_PATH }} --type ${{ env.PREDICATE_TYPE }} --key ${{ inputs.key }} ${{ env.IMAGE }}
+        cosign attest --tlog-upload=false --predicate ${{ env.CONTEXT }}/${{ env.SBOM }} --type ${{ env.PREDICATE_TYPE }} --key ${{ inputs.key }} ${{ env.IMAGE }}
         echo "Attestation finished"
       shell: bash
       env:
         COSIGN_PASSWORD: ${{ inputs.password }}
-        SBOM_PATH: ${{ env.CONTEXT }}/${{ env.SBOM }}
         PREDICATE_TYPE: ${{ inputs.type }}
 
     - name: Set outputs
