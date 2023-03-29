@@ -107,8 +107,8 @@ runs:
 
     - name: Check Image format
       run: |
-        if [[ ${{ inputs.image }} != *:*@* ]]; then
-          echo "Image must be in the form of <image>:<tag>@<digest>"
+        if [[ ${{ inputs.image }} != *@sha256:* ]]; then
+          echo "Image must be in the form of <image>@<digest>"
           exit 1
         fi
         echo IMAGE=${{ inputs.image }} >> $GITHUB_ENV
