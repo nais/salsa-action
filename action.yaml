@@ -63,6 +63,12 @@ inputs:
       The credentials for the KMS key
     required: false
 
+outputs:
+  sbom:
+    description: 'generated sbom path'
+    value: ${{ steps.outputs.outputs.sbom }}
+  
+
 runs:
   using: composite
   steps:
@@ -293,6 +299,4 @@ runs:
       id: outputs
       shell: bash
       run: |
-        echo "sbom=${{ env.SBOM_PATH }}" >> $GITHUB_OUTPUT
-      env:
-        SBOM_PATH: ${{ env.CONTEXT }}/${{ env.SBOM }}
+        echo "sbom=${{ env.CONTEXT }}/${{ env.SBOM }}" >> $GITHUB_OUTPUT
