@@ -68,7 +68,6 @@ outputs:
     description: 'generated sbom path'
     value: ${{ steps.outputs.outputs.sbom }}
   
-
 runs:
   using: composite
   steps:

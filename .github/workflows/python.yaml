@@ -4,7 +4,6 @@ on: [ push ]
 env:
   IMAGE: ttl.sh/salsa/pythontestapp:1h
   CONTEXT: ci/python
-  KEY: ci/cosign.key
 
 jobs:
   build-python:
@@ -27,4 +26,5 @@ jobs:
         with:
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
           context: ${{ env.CONTEXT }}
-          key: ${{ env.KEY }}
+          key: ${{ secrets.SALSA_KMS_KEY }}
+          kms-credentials: ${{ secrets.SALSA_CREDENTIALS }}
