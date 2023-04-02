@@ -6,7 +6,7 @@ inputs:
       (Optional) action finds the actual build file in the repository but you can also specify a ecosystem to generate 
       sbom from. Several of ecosystems have different type of build systems, then specify key=value,
       for node e.g. node=npm and for python e.g. python=poetry etc. maven and gradle only supports wrappers. 
-      If the application is depending on private repositories, please see 'bring your own sbom' alias 'byosbom'
+      If the application is depending on private repositories, please see 'bring your own sbom' alias 'byo-sbom'
     required: false
   image:
     description: |-
@@ -28,7 +28,7 @@ inputs:
       useful in mono-repos or when the build file is not in the root of the repository
     required: false
     default: '.'
-  byosbom:
+  byo-sbom:
     description: |-
       bring your own SBOM, use existing SBOM file instead of auto generating, must be a json file and 
       default format is CycloneDX, see: https://github.com/sigstore/cosign/blob/main/doc/cosign_attest.md for more info.
@@ -89,25 +89,25 @@ runs:
       shell: bash
 
     - name: Bring your own SBOM
-      if: ${{ inputs.byosbom != '' }}
+      if: ${{ inputs.byo-sbom != '' }}
       run: |
-        if [ ! -f ${{ inputs.context }}/inputs.byosbom }} ]; then
-          echo "File ${{ inputs.byosbom }} not found!"
+        if [ ! -f ${{ inputs.context }}/inputs.byo-sbom }} ]; then
+          echo "File ${{ inputs.byo-sbom }} not found!"
           exit 1
         fi
-        if [[ ${{ inputs.byosbom }} != *.json ]]; then
-          echo "File ${{ inputs.byosbom }} is not a json file!"
+        if [[ ${{ inputs.byo-sbom }} != *.json ]]; then
+          echo "File ${{ inputs.byo-sbom }} is not a json file!"
           exit 1
         fi
-          echo "GENERATED_SBOM_PATH=${{ inputs.byosbom }}" >> $GITHUB_ENV
+          echo "GENERATED_SBOM_PATH=${{ inputs.byo-sbom }}" >> $GITHUB_ENV
       shell: bash
 
     - name: Sign and upload SBOM
-      if: ${{ inputs.byosbom != '' }}
+      if: ${{ inputs.byo-sbom != '' }}
       uses: nais/attest@main
       with:
         image: ${{ inputs.image }}
-        sbom: ${{ inputs.byosbom }}
+        sbom: ${{ inputs.byo-sbom }}
         type: ${{ inputs.type }}
         workload-identity-provider: ${{ inputs.workload-identity-provider }}
         google-service-account: ${{ inputs.google-service-account }}
@@ -116,7 +116,7 @@ runs:
         kms-credentials: ${{ inputs.kms-credentials }}
 
     - name: Generate SBOM
-      if: ${{ inputs.byosbom == '' }}
+      if: ${{ inputs.byo-sbom == '' }}
       id: generate-sbom
       uses: nais/sbom@main
       with:
@@ -128,7 +128,7 @@ runs:
         with-dependencies: ${{ inputs.with-dependencies }}
 
     - name: Sign and attest generated SBOM
-      if: ${{ inputs.byosbom == '' }}
+      if: ${{ inputs.byo-sbom == '' }}
       uses: nais/attest@main
       with:
         image: ${{ inputs.image }}
