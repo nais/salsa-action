@@ -2,7 +2,7 @@ name: Go Salsa Action
 on: [ push ]
 
 env:
-  IMAGE: ttl.sh/salsa/gotestapp:1h
+  IMAGE: ttl.sh/salsa/gotestapp
   CONTEXT: ci/golang
   KEY: ci/cosign.key
 
@@ -17,7 +17,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           push: true
-          tags: ${{ env.IMAGE }}
+          tags: ${{ env.IMAGE }}:1h
           context: ./${{ env.CONTEXT }}
 
       - name: Generate, sign and upload SBOM

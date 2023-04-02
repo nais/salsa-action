@@ -9,4 +9,5 @@ import (
 func main() {
 	log.Debug("test")
 	fmt.Println("Hello World")
+	select {}
 }
