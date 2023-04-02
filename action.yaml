@@ -17,7 +17,7 @@ inputs:
       Generate and include dependencies in the SBOM
     required: false
     default: true
-  maindir:
+  go-main-dir:
     description: |-
       go main directory for sbom generation
     required: false
@@ -101,7 +101,7 @@ runs:
         fi
           echo "GENERATED_SBOM_PATH=${{ inputs.byosbom }}" >> $GITHUB_ENV
       shell: bash
-      
+
     - name: Sign and upload SBOM
       if: ${{ inputs.byosbom != '' }}
       uses: nais/attest@main
@@ -122,12 +122,12 @@ runs:
       with:
         ecosystem: ${{ inputs.ecosystem }}
         image: ${{ inputs.image }}
-        maindir: ${{ inputs.maindir }}
+        go-main-dir: ${{ inputs.go-main-dir }}
         context: ${{ inputs.context }}
         sbom: ${{ inputs.sbom }}
         with-dependencies: ${{ inputs.with-dependencies }}
 
-    - name: Sign and upload SBOM
+    - name: Sign and attest generated SBOM
       if: ${{ inputs.byosbom == '' }}
       uses: nais/attest@main
       with:
