@@ -84,3 +84,4 @@ For more information, see [action.yaml](action.yaml).
 * Sign container image
     * attest container sbom to container image
 * Support for other ecosystems
+* Support for other signing methods
