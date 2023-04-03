@@ -26,3 +26,4 @@ jobs:
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
           build-context: ${{ env.CONTEXT }}
           key: ${{ env.KEY }}
+          
