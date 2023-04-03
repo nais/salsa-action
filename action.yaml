@@ -122,6 +122,7 @@ runs:
         ecosystem: ${{ inputs.ecosystem }}
         image: ${{ inputs.image }}
         build-context: ${{ inputs.build-context }}
+        go-main-dir: ${{ inputs.go-main-dir }}
         sbom: ${{ inputs.sbom }}
         with-dependencies: ${{ inputs.with-dependencies }}
 
