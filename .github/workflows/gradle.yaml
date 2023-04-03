@@ -29,5 +29,5 @@ jobs:
         uses: ./
         with:
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
-          context: ${{ env.CONTEXT }}/gradle
+          build-context: ${{ env.CONTEXT }}/gradle
           key: ${{ env.KEY }}

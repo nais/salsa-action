@@ -17,17 +17,22 @@ inputs:
       Generate and include dependencies in the SBOM
     required: false
     default: true
-  context:
+  build-context:
     description: |-
       current working directory for sbom generation, defaults to root of the repository
       useful in mono-repos or when the build file is not in the root of the repository
+    required: false
+    default: '.'
+  go-main-dir:
+    description: |-
+      main directory for go ecosystem
     required: false
     default: '.'
   byo-sbom:
     description: |-
       bring your own SBOM, use existing SBOM file instead of auto generating, must be a json file and 
       default format is CycloneDX, see: https://github.com/sigstore/cosign/blob/main/doc/cosign_attest.md for more info.
-      If the file is not in the root of the repository, please see 'context'
+      If the file is not in the root of the repository, please see 'build-context'
     required: false
   sbom:
     description: |-
@@ -86,7 +91,7 @@ runs:
     - name: Bring your own SBOM
       if: ${{ inputs.byo-sbom != '' }}
       run: |
-        if [ ! -f ${{ inputs.context }}/inputs.byo-sbom }} ]; then
+        if [ ! -f ${{ inputs.byo-sbom }} ]; then
           echo "File ${{ inputs.byo-sbom }} not found!"
           exit 1
         fi
@@ -116,7 +121,7 @@ runs:
       with:
         ecosystem: ${{ inputs.ecosystem }}
         image: ${{ inputs.image }}
-        context: ${{ inputs.context }}
+        build-context: ${{ inputs.build-context }}
         sbom: ${{ inputs.sbom }}
         with-dependencies: ${{ inputs.with-dependencies }}
 

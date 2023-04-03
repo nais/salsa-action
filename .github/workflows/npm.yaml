@@ -25,5 +25,5 @@ jobs:
         uses: ./
         with:
           image: ${{ env.IMAGE }}@${{ steps.docker_build.outputs.digest }}
-          context: ${{ env.CONTEXT }}/npm
+          build-context: ${{ env.CONTEXT }}/npm
           key: ${{ env.KEY }}
