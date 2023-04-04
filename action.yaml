@@ -111,6 +111,7 @@ runs:
 
     - name: Generate SBOM
       if: ${{ inputs.byo-sbom == '' }}
+      id: generate-sbom
       uses: nais/sbom@main
       with:
         ecosystem: ${{ inputs.ecosystem }}
