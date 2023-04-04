@@ -70,11 +70,6 @@ inputs:
     required: false
     default: ''
 
-outputs:
-  sbom-path:
-    description: 'generated sbom path'
-    value: ${{ steps.outputs.outputs.sbom-path }}
-
 runs:
   using: composite
   steps:
@@ -116,7 +111,6 @@ runs:
 
     - name: Generate SBOM
       if: ${{ inputs.byo-sbom == '' }}
-      id: generate-sbom
       uses: nais/sbom@main
       with:
         ecosystem: ${{ inputs.ecosystem }}
