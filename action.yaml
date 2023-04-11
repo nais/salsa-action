@@ -16,7 +16,7 @@ inputs:
     description: |-
       Generate and include dependencies in the SBOM
     required: false
-    default: true
+    default: "true"
   build-context:
     description: |-
       current working directory for sbom generation, defaults to root of the repository
