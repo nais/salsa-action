@@ -27,7 +27,7 @@ inputs:
     description: |-
       main directory for go ecosystem
     required: false
-    default: ""
+    default: ''
   byo-sbom:
     description: |-
       bring your own SBOM, use existing SBOM file instead of auto generating, must be a json file and 
