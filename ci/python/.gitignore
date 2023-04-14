@@ -5,6 +5,7 @@ __pycache__
 # Generated
 /.coverage
 /dist/
+.venv
 
 # IDE
 /.vscode/*

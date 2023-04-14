@@ -20,6 +20,13 @@ jobs:
           tags: ${{ env.IMAGE }}:1h
           context: ./${{ env.CONTEXT }}
 
+      - name: Install Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: ${{ env.CONTEXT }}/go.mod
+          cache-dependency-path: ${{ env.CONTEXT }}/go.sum
+          cache: true
+
       - name: Generate, sign and upload SBOM
         uses: ./
         with:
