@@ -110,7 +110,7 @@ runs:
         echo "Using SBOM ${{ inputs.sbom }}"
         echo "Signing SBOM for ${{ inputs.image }}"
         cosign sign --yes --key ${{ inputs.key }} ${{ inputs.image }}
-        cosign attest --predicate ${{ inputs.sbom }} --type ${{ inputs.type }} --key ${{ inputs.key }} ${{ inputs.image }}
+        cosign attest --yes --predicate ${{ inputs.sbom }} --type ${{ inputs.type }} --key ${{ inputs.key }} ${{ inputs.image }}
         echo "sign attestation with keys finished"
       shell: bash
       env:
