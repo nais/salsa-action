@@ -85,27 +85,25 @@ runs:
         echo "Generated sbom from image with trivy"
         echo GENERATED_SBOM_PATH="${{ inputs.build-context }}/${{ inputs.sbom }}" >> $GITHUB_ENV
 
-    - name: Check if Go is already installed
-      if: ${{ env.ECOSYSTEM == 'go' }}
-      shell: bash
-      run: |
-        echo "Check for GO:"
-        cd ..
-        command -v go >/dev/null 2>&1
-        if [[ "$(command -v go >/dev/null 2>&1)" ]]; then
-            echo "Go is already installed"
-            echo "INSTALL_GO=false" >> $GITHUB_ENV
-        else
-            echo "Go is not installed"
-          echo "INSTALL_GO=true" >> $GITHUB_ENV
-        fi
-
-    - name: Install Go
-      if: ${{ env.ECOSYSTEM == 'go' && env.INSTALL_GO == 'true' }}
-      uses: actions/setup-go@v4
-      with:
-        go-version-file: ${{ inputs.build-context }}/go.mod
-        cache-dependency-path: ${{ inputs.build-context }}/go.sum
+   # - name: Check if Go is already installed
+   #   if: ${{ env.ECOSYSTEM == 'go' }}
+   #   shell: bash
+   #   run: |
+   #     command -v go >/dev/null 2>&1
+   #     if [[ "$(command -v go >/dev/null 2>&1)" ]]; then
+   #         echo "Go is already installed"
+   #         echo "INSTALL_GO=false" >> $GITHUB_ENV
+   #     else
+   #         echo "Go is not installed"
+   #       echo "INSTALL_GO=true" >> $GITHUB_ENV
+   #     fi
+#
+   # - name: Install Go
+   #   if: ${{ env.ECOSYSTEM == 'go' && env.INSTALL_GO == 'true' }}
+   #   uses: actions/setup-go@v4
+   #   with:
+   #     go-version-file: ${{ inputs.build-context }}/go.mod
+   #     cache-dependency-path: ${{ inputs.build-context }}/go.sum
 
     - name: Find main.go
       if: ${{ env.ECOSYSTEM == 'go' }}
