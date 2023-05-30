@@ -47,6 +47,7 @@ runs:
       with:
         cosign-release: 'v2.0.0'
 
+    # Used for local testing
     #- name: Install Cosign
     #  run: |
     #    curl https://github.com/sigstore/cosign/releases/download/v2.0.0/cosign-linux-amd64 -Lo /usr/local/bin/cosign
@@ -80,29 +81,37 @@ runs:
       run: echo "OIDC_PROVIDER=github-actions" >> $GITHUB_ENV
       shell: bash
 
-    - name: Cosign keyless Google attest and upload to OCI registry
+    - name: Sign Image and upload to OCI registry
+      if: ${{ inputs.key == '' }}
+      run: |
+        cosign sign --yes ${{ inputs.image }}
+        echo "Signed image ${{ inputs.image }}"
+      shell: bash
+
+    - name: Cosign keyless Google attest and upload
       if: ${{ inputs.key == '' && env.OIDC_PROVIDER == 'google-impersonate' }}
       run: |
         cosign attest --yes --oidc-provider ${{ env.OIDC_PROVIDER }} --predicate ${{ inputs.sbom }} --type ${{ inputs.type }} ${{ inputs.image }}
-        echo "keyless ${{ env.OIDC_PROVIDER }} attestation finished"
+        echo "sign attestation keyless ${{ env.OIDC_PROVIDER }} finished"
       shell: bash
       env:
         GOOGLE_SERVICE_ACCOUNT_NAME: ${{ inputs.google-service-account }}
 
-    - name: Cosign keyless Github attest and upload to OCI registry
+    - name: Cosign keyless Github attest and upload
       if: ${{ inputs.key == '' && env.OIDC_PROVIDER == 'github-actions' }}
       run: |
         cosign attest --yes --predicate ${{ inputs.sbom }} --type ${{ inputs.type }} ${{ inputs.image }}
-        echo "keyless ${{ env.OIDC_PROVIDER }} attestation finished"
+        echo "sign attestation keyless ${{ env.OIDC_PROVIDER }} finished"
       shell: bash
 
-    - name: Cosign attest and upload to OCI registry
+    - name: Cosign attest and upload
       if: ${{ inputs.key != '' }}
       run: |
         echo "Using SBOM ${{ inputs.sbom }}"
         echo "Signing SBOM for ${{ inputs.image }}"
+        cosign sign --yes --key ${{ inputs.key }} ${{ inputs.image }}
         cosign attest --tlog-upload=false --predicate ${{ inputs.sbom }} --type ${{ inputs.type }} --key ${{ inputs.key }} ${{ inputs.image }}
-        echo "Attestation finished"
+        echo "sign attestation with keys finished"
       shell: bash
       env:
         COSIGN_PASSWORD: ${{ inputs.password }}
