@@ -89,7 +89,8 @@ runs:
       if: ${{ env.ECOSYSTEM == 'go' }}
       shell: bash
       run: |
-        echo "Check for GO: $(command -v go >/dev/null 2>&1)"
+        echo "Check for GO:"
+        command -v go >/dev/null 2>&1
         if [[ "$(command -v go >/dev/null 2>&1)" ]]; then
             echo "Go is already installed"
             echo "INSTALL_GO=false" >> $GITHUB_ENV
