@@ -89,10 +89,12 @@ runs:
       if: ${{ env.ECOSYSTEM == 'go' }}
       shell: bash
       run: |
+        echo "Check for GO: $(command -v go >/dev/null 2>&1)"
         if [[ "$(command -v go >/dev/null 2>&1)" ]]; then
             echo "Go is already installed"
             echo "INSTALL_GO=false" >> $GITHUB_ENV
         else
+            echo "Go is not installed"
           echo "INSTALL_GO=true" >> $GITHUB_ENV
         fi
 
@@ -102,7 +104,6 @@ runs:
       with:
         go-version-file: ${{ inputs.build-context }}/go.mod
         cache-dependency-path: ${{ inputs.build-context }}/go.sum
-        cache: true
 
     - name: Find main.go
       if: ${{ env.ECOSYSTEM == 'go' }}
