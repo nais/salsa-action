@@ -98,7 +98,7 @@ runs:
 
     - name: Sign and attest byo-SBOM
       if: ${{ inputs.byo-sbom != '' }}
-      uses: nais/attest@main
+      uses: ./attest
       with:
         image: ${{ inputs.image }}
         sbom: ${{ inputs.byo-sbom }}
@@ -112,7 +112,7 @@ runs:
     - name: Generate SBOM
       if: ${{ inputs.byo-sbom == '' }}
       id: generate-sbom
-      uses: nais/sbom@main
+      uses: ./sbom
       with:
         ecosystem: ${{ inputs.ecosystem }}
         image: ${{ inputs.image }}
@@ -123,7 +123,7 @@ runs:
 
     - name: Sign and attest generated SBOM
       if: ${{ inputs.byo-sbom == '' }}
-      uses: nais/attest@main
+      uses: ./attest
       with:
         image: ${{ inputs.image }}
         sbom: ${{ steps.generate-sbom.outputs.sbom-path }}

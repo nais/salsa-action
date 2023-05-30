@@ -1,0 +1,205 @@
+name: 'Nais Sbom Generator'
+description: 'Generate and output SBOM'
+inputs:
+
+  ecosystem:
+    description: |-
+      (Optional) action finds the actual build file in the repository but you can also specify a ecosystem to generate 
+      sbom from. Several of ecosystems have different type of build systems, then specify key=value,
+      for node e.g. node=npm and for python e.g. python=poetry etc. maven and gradle only supports wrappers.
+    required: false
+
+  image:
+    description: |-
+      image to sign and upload attestation, must be in the form of <image>:<tag>@<digest>
+    required: true
+
+  build-context:
+    description: |-
+      current working directory for sbom generation, defaults to root of the repository
+    required: false
+    default: '.'
+
+  go-main-dir:
+    description: |-
+      main directory for go ecosystem
+    required: false
+    default: ''
+
+  sbom:
+    description: |-
+      filename of the SBOM file, defaults to bom.json
+    required: false
+    default: 'bom.json'
+
+  with-dependencies:
+    description: |-
+      generate with dependencies for sbom
+    default: 'true'
+
+outputs:
+  sbom-path:
+    description: 'generated sbom path'
+    value: ${{ steps.outputs.outputs.sbom-path }}
+
+runs:
+  using: composite
+  steps:
+
+    - name: Identify ecosystem
+      if: ${{ inputs.with-dependencies == 'true' && inputs.ecosystem == '' }}
+      run: |
+        if [[ "$(find ${{ inputs.build-context }} -type f -name 'package-lock.json')" ]]; then
+         echo ECOSYSTEM="node=npm" >> $GITHUB_ENV
+        elif [[ "$(find ${{ inputs.build-context }} -type f -name 'build.gradle*')" ]]; then
+         echo ECOSYSTEM=gradle >> $GITHUB_ENV
+        elif [[ "$(find ${{ inputs.build-context }} -type f -name 'pom.xml')" ]]; then
+         echo ECOSYSTEM=maven >> $GITHUB_ENV
+        elif [[ "$(find ${{ inputs.build-context }} -type f -name 'go.mod')" ]]; then
+         echo ECOSYSTEM=go >> $GITHUB_ENV
+        elif [[ "$(find ${{ inputs.build-context }} -type f -name 'poetry.lock')" ]]; then
+         echo ECOSYSTEM="python=poetry" >> $GITHUB_ENV
+        elif [[ "$(find ${{ inputs.build-context }} -type f -name 'Pipfile.lock')" ]]; then
+         echo ECOSYSTEM="python=pip" >> $GITHUB_ENV
+        elif [[ "$(find ${{ inputs.build-context }} -type f -name 'requirements.txt')" ]]; then
+          echo ECOSYSTEM="python=pip" >> $GITHUB_ENV
+        else
+         echo "No supported build file found in the repository"
+         echo "Action will try to generate sbom from the image with trivy"
+        fi
+      shell: bash
+
+    - name: Use trivy to generate sbom
+      if: ${{ env.ECOSYSTEM == '' }}
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: "image"
+        format: "cyclonedx"
+        output: "${{ inputs.build-context }}/${{ inputs.sbom }}"
+        image-ref: "${{ inputs.image }}"
+
+    - name: Ensure trivy sbom exists
+      if: ${{ env.ECOSYSTEM == '' }}
+      shell: bash
+      run: |
+        echo "Generated sbom from image with trivy"
+        echo GENERATED_SBOM_PATH="${{ inputs.build-context }}/${{ inputs.sbom }}" >> $GITHUB_ENV
+
+    - name: Check if Go is already installed
+      if: ${{ env.ECOSYSTEM == 'go' }}
+      shell: bash
+      run: |
+        if [[ "$(command -v go >/dev/null 2>&1)" ]]; then
+            echo "Go is already installed"
+            echo "INSTALL_GO=false" >> $GITHUB_ENV
+        else
+          echo "INSTALL_GO=true" >> $GITHUB_ENV
+        fi
+
+    - name: Install Go
+      if: ${{ env.ECOSYSTEM == 'go' && env.INSTALL_GO == 'true' }}
+      uses: actions/setup-go@v4
+      with:
+        go-version-file: ${{ inputs.build-context }}/go.mod
+        cache-dependency-path: ${{ inputs.build-context }}/go.sum
+        cache: true
+
+    - name: Find main.go
+      if: ${{ env.ECOSYSTEM == 'go' }}
+      shell: bash
+      run: |
+        main_go_path="$(find ${{ inputs.build-context }} -type f -name 'main.go')"
+        if [[ -z "${{ inputs.go-main-dir }}" ]]; then
+          echo "go-main-dir is not set, trying to find main.go"
+          if [[ -z "$main_go_path" ]]; then
+            echo "main.go not found, please specify 'go-main-dir'"
+            exit 1
+          fi
+          if [[ $(echo "$main_go_path" | wc -l) -gt 1 ]]; then
+            echo "main.go found in multiple directories, please specify 'go-main-dir'"
+            exit 1
+          fi
+        else
+          main_go_path="${{ inputs.go-main-dir }}"
+        fi
+        
+        echo "main.go found in $main_go_path"
+        relative_path="${main_go_path#${{ inputs.build-context }}}"
+        echo "GO_MAIN_DIR=${relative_path%/*}" >> $GITHUB_ENV
+
+    - name: Run cyclonedx-gomod and generate sbom
+      if: ${{ env.ECOSYSTEM == 'go' }}
+      shell: bash
+      run: |
+        cd ${{ inputs.build-context }}
+        go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.4.0
+        echo "Installed cyclonedx-gomod"
+        cyclonedx-gomod app -output ./${{ inputs.sbom }} -main ./${{ env.GO_MAIN_DIR }} -json=true
+        echo "Generated Go ${{ inputs.sbom }}"
+        echo GENERATED_SBOM_PATH="${{ inputs.build-context }}/${{ inputs.sbom }}" >> $GITHUB_ENV
+
+
+    - name: Maven CycloneDX sbom
+      if: ${{ env.ECOSYSTEM == 'maven' }}
+      shell: bash
+      run: |
+        if [[ ! -f "${{ inputs.build-context }}/mvnw" ]]; then
+          echo "maven wrapper not found, please add it to the repository"
+          exit 1
+        fi
+        cd ${{ inputs.build-context }}
+        ./mvnw org.cyclonedx:cyclonedx-maven-plugin:2.7.5:makeAggregateBom -DoutputFormat=json -DoutputName=bom && \
+        echo "GENERATED_SBOM_PATH=${{ inputs.build-context }}/target/${{ inputs.sbom }}" >> $GITHUB_ENV && echo "Generated Maven ${{ inputs.sbom }}"
+
+    - name: Gradle cycloneDX sbom
+      if: ${{ env.ECOSYSTEM == 'gradle' }}
+      shell: bash
+      run: |
+        if [[ ! -f "${{ inputs.build-context }}/gradlew" ]]; then
+          echo "gradle wrapper not found, please add it to the repository"
+          exit 1
+        fi
+        cd ${{ inputs.build-context }}
+        ./gradlew cyclonedxBom && \
+        echo "GENERATED_SBOM_PATH=${{ inputs.build-context }}/build/reports/${{ inputs.sbom }}" >> $GITHUB_ENV && echo "Generated Gradle ${{ inputs.sbom }}"
+
+    - name: Npm CycloneDX sbom
+      if: ${{ contains(env.ECOSYSTEM, 'node') }}
+      shell: bash
+      run: |
+        eco="${{ env.ECOSYSTEM }}"
+        build_type="${eco##*=}"
+        if [[ "$build_type" == '' ||  "$build_type" != 'npm' ]]; then
+          echo "a project build type is required for node ecosystem"
+          echo "accepted values are npm"
+          echo "yarn is not supported at the moment"
+          exit 1
+        fi
+        cd ${{ inputs.build-context }}
+        npx @cyclonedx/cyclonedx-npm@1.9.2 --output-file ${{ inputs.sbom }}
+        echo "Generated ${{ env.ECOSYSTEM }} ${{ inputs.sbom }}"
+        echo GENERATED_SBOM_PATH="${{ inputs.build-context }}/${{ inputs.sbom }}" >> $GITHUB_ENV
+
+    - name: Python CycloneDX sbom
+      if: ${{ contains(env.ECOSYSTEM, 'python') }}
+      shell: bash
+      run: |
+        # greedy front trim matches everything up to and including the last colon
+        eco="${{ env.ECOSYSTEM }}"
+        build_type="${eco##*=}"
+        if [[ "$build_type" == '' ||  "$build_type" != 'poetry' && "$build_type" != 'pip' && "$build_type" != 'conda-json' && "$build_type" != 'requirements' ]]; then
+          echo "a project build type is required for python ecosystem"
+          echo "accepted values are pip, poetry, conda-json and requirements"
+          exit 1
+        fi
+        cd ${{ inputs.build-context }}
+        pip install cyclonedx-bom==v3.11.0
+        cyclonedx-py --"$build_type" -o ${{ inputs.sbom }} --format json
+        echo "Generated ${{ env.ECOSYSTEM }} ${{ inputs.sbom }}"
+        echo GENERATED_SBOM_PATH="${{ inputs.build-context }}/${{ inputs.sbom }}" >> $GITHUB_ENV
+
+    - name: Set outputs
+      id: outputs
+      shell: bash
+      run: |
+        echo "sbom-path=${{ env.GENERATED_SBOM_PATH }}" >> $GITHUB_OUTPUT

@@ -1,0 +1,108 @@
+name: 'Nais Attest'
+description: 'Sign and upload attestation'
+inputs:
+  image:
+    description: |-
+      image to sign and upload attestation, must be in the form of <image>:<tag>@<digest>
+    required: true
+  key:
+    description: |-
+      path to the private key file or KMS URI
+    required: false
+    default: ''
+  password:
+    description: |-
+      password for the private key file
+    required: false
+    default: ''
+  sbom:
+    description: |-
+      sbom file to sign and upload attestation
+    required: true
+  type:
+    description: |-
+      type of the SBOM file, defaults to cyclonedx
+    required: false
+    default: 'cyclonedx'
+  workload-identity-provider:
+    description: |-
+      The workload identity provider for google service account impersonation
+    required: false
+  google-service-account:
+    description: |-
+      Name of google service account to impersonate
+    required: false
+    default: ''
+  kms-credentials:
+    description: |-
+      The credentials for the KMS key
+    required: false
+
+runs:
+  using: composite
+  steps:
+
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@main
+      with:
+        cosign-release: 'v2.0.0'
+
+    #- name: Install Cosign
+    #  run: |
+    #    curl https://github.com/sigstore/cosign/releases/download/v2.0.0/cosign-linux-amd64 -Lo /usr/local/bin/cosign
+    #    chmod +x /usr/local/bin/cosign
+    #    echo "Installed cosign"
+    #  shell: bash
+
+    - name: Authenticate to Google Cloud with workload identity
+      if: ${{ inputs.key == '' && inputs.google-service-account != '' && inputs.workload-identity-provider != ''}}
+      uses: google-github-actions/auth@v1.0.0
+      with:
+        workload_identity_provider: ${{ inputs.workload-identity-provider }}
+        service_account: ${{ inputs.google-service-account }}
+        token_format: "id_token"
+        id_token_audience: sigstore
+        id_token_include_email: true
+
+    - name: Authenticate to Google Cloud with credentials
+      if: ${{ inputs.key != '' && inputs.kms-credentials != '' }}
+      uses: google-github-actions/auth@v1.0.0
+      with:
+        credentials_json: ${{ inputs.kms-credentials }}
+
+    - name: Determine cosign google oidc provider
+      if: ${{ inputs.key == '' && inputs.google-service-account != ''}}
+      run: echo "OIDC_PROVIDER=google-impersonate" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Determine cosign github oidc provider
+      if: ${{ inputs.key == '' && inputs.google-service-account == ''}}
+      run: echo "OIDC_PROVIDER=github-actions" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Cosign keyless Google attest and upload to OCI registry
+      if: ${{ inputs.key == '' && env.OIDC_PROVIDER == 'google-impersonate' }}
+      run: |
+        cosign attest --yes --oidc-provider ${{ env.OIDC_PROVIDER }} --predicate ${{ inputs.sbom }} --type ${{ inputs.type }} ${{ inputs.image }}
+        echo "keyless ${{ env.OIDC_PROVIDER }} attestation finished"
+      shell: bash
+      env:
+        GOOGLE_SERVICE_ACCOUNT_NAME: ${{ inputs.google-service-account }}
+
+    - name: Cosign keyless Github attest and upload to OCI registry
+      if: ${{ inputs.key == '' && env.OIDC_PROVIDER == 'github-actions' }}
+      run: |
+        cosign attest --yes --predicate ${{ inputs.sbom }} --type ${{ inputs.type }} ${{ inputs.image }}
+        echo "keyless ${{ env.OIDC_PROVIDER }} attestation finished"
+      shell: bash
+
+    - name: Cosign attest and upload to OCI registry
+      if: ${{ inputs.key != '' }}
+      run: |
+        echo "Using SBOM ${{ inputs.sbom }}"
+        echo "Signing SBOM for ${{ inputs.image }}"
+        cosign attest --tlog-upload=false --predicate ${{ inputs.sbom }} --type ${{ inputs.type }} --key ${{ inputs.key }} ${{ inputs.image }}
+        echo "Attestation finished"
+      shell: bash
+      env:
+        COSIGN_PASSWORD: ${{ inputs.password }}
